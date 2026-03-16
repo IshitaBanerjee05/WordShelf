@@ -5,6 +5,7 @@ from typing import List
 from app.database import get_db
 from app.models import vocabulary, vocabulary_schemas, user
 from app.core.dependencies import get_current_active_user
+from app.services.dictionary import fetch_word_definition
 
 router = APIRouter(
     prefix="/vocabulary",
@@ -12,12 +13,22 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=vocabulary_schemas.VocabularyResponse)
-def create_vocabulary(
+async def create_vocabulary(
     vocab: vocabulary_schemas.VocabularyCreate, 
     db: Session = Depends(get_db),
     current_user: user.User = Depends(get_current_active_user)
 ):
-    db_vocab = vocabulary.Vocabulary(**vocab.model_dump(), user_id=current_user.id)
+    vocab_data = vocab.model_dump()
+    
+    # Auto-fetch definition if not provided
+    if not vocab_data.get("definition") and vocab_data.get("word"):
+        dict_data = await fetch_word_definition(vocab_data["word"])
+        if dict_data:
+            vocab_data["definition"] = dict_data["definition"]
+            if not vocab_data.get("context_sentence") and dict_data.get("example"):
+                vocab_data["context_sentence"] = dict_data["example"]
+    
+    db_vocab = vocabulary.Vocabulary(**vocab_data, user_id=current_user.id)
     db.add(db_vocab)
     db.commit()
     db.refresh(db_vocab)
