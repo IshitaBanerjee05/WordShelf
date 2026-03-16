@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, bookshelf, vocabulary
+from app.routes import auth, bookshelf, vocabulary, analytics
 from app.database import engine
 from app.models import user, bookshelf as bookshelf_model, vocabulary as vocabulary_model
 
@@ -32,6 +32,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(bookshelf.router)
 app.include_router(vocabulary.router)
+app.include_router(analytics.router)
 
 @app.get("/")
 def read_root():
