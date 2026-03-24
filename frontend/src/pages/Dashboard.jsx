@@ -67,7 +67,7 @@ export default function Dashboard() {
           value="1,284" 
           trend="+12%" 
           icon={Brain} 
-          colorClass="bg-blue-50 text-blue-600 shadow-inner shadow-blue-100/50" 
+          colorClass="bg-primary-50 text-primary-600 shadow-inner shadow-primary-100/50" 
         />
         <StatCard 
           title="Current Streak" 
@@ -100,7 +100,7 @@ export default function Dashboard() {
         >
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-slate-900">Vocabulary Growth (This Week)</h3>
-            <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+            <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2">
                 <option>This Week</option>
                 <option>This Month</option>
                 <option>This Year</option>
@@ -143,9 +143,9 @@ export default function Dashboard() {
                 values={activityData}
                 classForValue={(value) => {
                   if (!value) return 'color-empty opacity-20 bg-slate-100 rounded-sm m-1';
-                  if (value.count < 3) return 'fill-blue-300 rounded-sm m-1';
-                  if (value.count < 5) return 'fill-blue-500 rounded-sm m-1';
-                  return 'fill-blue-700 rounded-sm m-1';
+                  if (value.count < 3) return 'fill-primary-300 rounded-sm m-1';
+                  if (value.count < 5) return 'fill-primary-500 rounded-sm m-1';
+                  return 'fill-primary-700 rounded-sm m-1';
                 }}
                 showWeekdayLabels={false}
                 tooltipDataAttrs={value => {
@@ -171,7 +171,7 @@ export default function Dashboard() {
       >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-slate-900">Suggested Revision</h3>
-          <button className="text-sm text-blue-600 font-medium hover:text-blue-700">View All</button>
+          <button className="text-sm text-primary-600 font-medium hover:text-primary-700">View All</button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
            {/* Mock Flashcard Preview */}
@@ -180,8 +180,8 @@ export default function Dashboard() {
              { word: 'Obfuscate', context: 'He tried to obfuscate the truth with jargon.', book: 'The Trial' },
              { word: 'Sycophant', context: 'Surrounded by sycophants, the king grew ignorant.', book: 'Empire Falls' }
            ].map((item, idx) => (
-             <div key={idx} className="group relative p-5 bg-slate-50 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors cursor-pointer overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-blue-100 to-emerald-100 rounded-bl-full opacity-50 group-hover:scale-110 transition-transform"></div>
+             <div key={idx} className="group relative p-5 bg-slate-50 rounded-xl border border-slate-200 hover:border-primary-300 transition-colors cursor-pointer overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary-100 to-emerald-100 rounded-bl-full opacity-50 group-hover:scale-110 transition-transform"></div>
                 <div className="relative z-10">
                   <h4 className="text-xl font-bold text-slate-900 mb-1">{item.word}</h4>
                   <p className="text-sm text-slate-500 mb-3 italic">"{item.context}"</p>
@@ -197,3 +197,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
