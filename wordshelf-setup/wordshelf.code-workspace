@@ -1,0 +1,68 @@
+{
+  "folders": [
+    { "name": "📦 WordShelf Root",    "path": "."          },
+    { "name": "⚛️  Frontend (React)", "path": "./frontend" },
+    { "name": "🐍 Backend (FastAPI)", "path": "./backend"  }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[python]": {
+      "editor.defaultFormatter": "ms-python.black-formatter",
+      "editor.tabSize": 4
+    },
+    "tailwindCSS.includeLanguages": {
+      "javascript": "javascript",
+      "javascriptreact": "javascript"
+    },
+    "editor.quickSuggestions": {
+      "strings": "on"
+    },
+    "css.validate": false,
+    "files.associations": {
+      "*.css": "tailwindcss"
+    },
+    "emmet.includeLanguages": {
+      "javascript": "javascriptreact"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "dsznajder.es7-react-js-snippets",
+      "ms-python.python",
+      "ms-python.black-formatter",
+      "ms-python.pylint",
+      "christian-kohler.path-intellisense",
+      "formulahendry.auto-rename-tag",
+      "streetsidesoftware.code-spell-checker",
+      "PKief.material-icon-theme",
+      "eamodio.gitlens",
+      "humao.rest-client"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "▶ Run Frontend (Vite)",
+        "type": "node",
+        "request": "launch",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"],
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      {
+        "name": "🐍 Run Backend (FastAPI)",
+        "type": "python",
+        "request": "launch",
+        "module": "uvicorn",
+        "args": ["main:app", "--reload", "--port", "5000"],
+        "cwd": "${workspaceFolder}/backend",
+        "envFile": "${workspaceFolder}/backend/.env"
+      }
+    ]
+  }
+}
