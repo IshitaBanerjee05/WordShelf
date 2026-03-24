@@ -35,10 +35,10 @@ export default function Flashcards() {
            <motion.div 
              initial={{ scale: 0.8, opacity: 0 }}
              animate={{ scale: 1, opacity: 1 }}
-             className="bg-white p-12 rounded-3xl shadow-xl border border-blue-100 max-w-md w-full text-center relative overflow-hidden"
+             className="bg-white p-12 rounded-3xl shadow-xl border border-primary-100 max-w-md w-full text-center relative overflow-hidden"
            >
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-blue-400 to-emerald-400"></div>
-              <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 shadow-inner">
+              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-primary-400 to-emerald-400"></div>
+              <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 shadow-inner">
                  <Target className="w-12 h-12" />
               </div>
               <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Session Complete!</h2>
@@ -46,7 +46,7 @@ export default function Flashcards() {
               
               <div className="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
                  <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Accuracy</p>
-                 <div className="text-5xl font-extrabold text-blue-600 font-serif">
+                 <div className="text-5xl font-extrabold text-primary-600 font-serif">
                    {Math.round((score / mockCards.length) * 100)}%
                  </div>
               </div>
@@ -68,7 +68,7 @@ export default function Flashcards() {
          <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                 <Brain className="w-6 h-6 text-blue-500" /> Daily Revision
+                 <Brain className="w-6 h-6 text-primary-500" /> Daily Revision
               </h2>
               <p className="text-slate-500 text-sm mt-1">Spaced repetition session</p>
             </div>
@@ -81,7 +81,7 @@ export default function Flashcards() {
 
          <div className="h-2 w-full bg-slate-200 rounded-full mb-12 overflow-hidden shadow-inner">
              <motion.div 
-               className="h-full bg-blue-500 rounded-full"
+               className="h-full bg-primary-500 rounded-full"
                initial={{ width: 0 }}
                animate={{ width: `${((currentIndex) / mockCards.length) * 100}%` }}
                transition={{ duration: 0.5 }}
@@ -100,12 +100,12 @@ export default function Flashcards() {
                   onClick={() => setIsFlipped(!isFlipped)}
                 >
                    {/* Decorative background Elements */}
-                   <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-50 rounded-full opacity-50"></div>
+                   <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary-50 rounded-full opacity-50"></div>
                    <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-50 rounded-full opacity-50"></div>
 
                    {!isFlipped ? (
                       <div>
-                         <span className="text-sm font-bold text-blue-500 tracking-widest uppercase mb-6 block drop-shadow-sm">Word</span>
+                         <span className="text-sm font-bold text-primary-500 tracking-widest uppercase mb-6 block drop-shadow-sm">Word</span>
                          <h3 className="text-6xl font-extrabold text-slate-900 font-serif tracking-tight drop-shadow-sm">{activeCard.front}</h3>
                          <p className="mt-8 text-slate-400 text-sm font-medium flex items-center gap-2 justify-center">
                             <svg className="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-3 3m0 0l-3-3m3 3V8"></path></svg>
@@ -145,7 +145,7 @@ export default function Flashcards() {
                   </button>
                   <button 
                      onClick={(e) => { e.stopPropagation(); handleNext(true); }}
-                     className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex flex-col items-center gap-1 shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-1 w-48"
+                     className="px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold flex flex-col items-center gap-1 shadow-lg shadow-primary-500/30 transition-all hover:-translate-y-1 w-48"
                   >
                      <Check className="w-8 h-8" />
                      Got it right
@@ -157,3 +157,4 @@ export default function Flashcards() {
     </div>
   );
 }
+
