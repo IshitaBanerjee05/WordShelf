@@ -19,7 +19,7 @@ export default function Bookshelf() {
           <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Your Digital Bookshelf</h2>
           <p className="text-slate-500 mt-1 text-sm">Organize your reading and track extracted vocabulary.</p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all hover:scale-105 active:scale-95">
+        <button className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 shadow-lg shadow-primary-500/30 transition-all hover:scale-105 active:scale-95">
           <Plus className="w-5 h-5" />
           Add Resource
         </button>
@@ -32,7 +32,7 @@ export default function Bookshelf() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex-1 md:flex-none text-center ${
-                activeTab === tab ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                activeTab === tab ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               {tab}
@@ -42,7 +42,7 @@ export default function Bookshelf() {
         <div className="flex gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-             <input type="text" placeholder="Search resources..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+             <input type="text" placeholder="Search resources..." className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all" />
           </div>
           <button className="p-2 border border-slate-200 text-slate-500 rounded-lg hover:bg-slate-50 transition-colors">
             <Filter className="w-4 h-4" />
@@ -57,7 +57,7 @@ export default function Bookshelf() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: idx * 0.1 }}
-            className="group relative bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-300"
+            className="group relative bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl hover:border-primary-200 transition-all duration-300"
           >
             <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
                <img src={book.cover} alt={book.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90 group-hover:opacity-100" />
@@ -81,17 +81,17 @@ export default function Bookshelf() {
                      <span className="text-xs font-bold">{book.progress}%</span>
                   </div>
                   <div className="h-1.5 w-full bg-white/30 rounded-full mt-2 overflow-hidden backdrop-blur-sm">
-                    <div className="h-full bg-blue-400 rounded-full" style={{ width: `${book.progress}%` }}></div>
+                    <div className="h-full bg-primary-400 rounded-full" style={{ width: `${book.progress}%` }}></div>
                   </div>
                </div>
             </div>
             
             <div className="p-5">
-              <h3 className="font-bold text-slate-800 text-lg line-clamp-1 mb-1 group-hover:text-blue-600 transition-colors">{book.title}</h3>
+              <h3 className="font-bold text-slate-800 text-lg line-clamp-1 mb-1 group-hover:text-primary-600 transition-colors">{book.title}</h3>
               <p className="text-sm font-medium text-slate-500">{book.author}</p>
             </div>
             
-            <button className="absolute inset-0 w-full h-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 z-10 opacity-0 group-hover:opacity-100">
+            <button className="absolute inset-0 w-full h-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 z-10 opacity-0 group-hover:opacity-100">
                <span className="sr-only">View Book</span>
             </button>
           </motion.div>
@@ -100,3 +100,4 @@ export default function Bookshelf() {
     </div>
   );
 }
+
