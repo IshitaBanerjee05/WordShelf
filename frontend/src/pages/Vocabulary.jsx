@@ -67,7 +67,7 @@ export default function Vocabulary() {
           <div className="p-4 border-b border-slate-100 bg-slate-50/50">
              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input type="text" placeholder="Search saved words..." className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow shadow-sm" />
+                <input type="text" placeholder="Search saved words..." className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow shadow-sm" />
              </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
@@ -77,12 +77,12 @@ export default function Vocabulary() {
                 onClick={() => setSelectedWord(item)}
                 className={`w-full text-left p-4 rounded-xl transition-all border ${
                   selectedWord?.id === item.id 
-                    ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                    ? 'bg-primary-50 border-primary-200 shadow-sm' 
                     : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
                 }`}
               >
                 <div className="flex justify-between items-start mb-1">
-                  <span className={`font-bold ${selectedWord?.id === item.id ? 'text-blue-700' : 'text-slate-800'}`}>{item.word}</span>
+                  <span className={`font-bold ${selectedWord?.id === item.id ? 'text-primary-700' : 'text-slate-800'}`}>{item.word}</span>
                   <div className={`w-2 h-2 rounded-full mt-1.5 ${item.strength > 80 ? 'bg-emerald-500' : item.strength > 50 ? 'bg-amber-500' : 'bg-red-500'}`}></div>
                 </div>
                 <div className="flex items-center text-xs text-slate-500 gap-2">
@@ -103,7 +103,7 @@ export default function Vocabulary() {
                   <div>
                     <h1 className="text-4xl font-extrabold text-slate-900 mb-2 font-serif">{selectedWord.word}</h1>
                     <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
-                      <span className="italic text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">{selectedWord.pos}</span>
+                      <span className="italic text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md">{selectedWord.pos}</span>
                       <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors p-1 rounded-md hover:bg-slate-100">
                         <Volume2 className="w-4 h-4" /> Listen
                       </button>
@@ -133,7 +133,7 @@ export default function Vocabulary() {
                     <div className="space-y-3">
                       {selectedWord.examples.map((ex, i) => (
                         <div key={i} className="p-4 bg-slate-50 border border-slate-200 rounded-xl relative overflow-hidden group">
-                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]"></div>
+                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-400 shadow-[0_0_10px_rgba(96,165,250,0.5)]"></div>
                            <p className="text-slate-700 italic border-l-2 border-transparent pl-2 font-serif">"{ex}"</p>
                         </div>
                       ))}
@@ -169,3 +169,4 @@ export default function Vocabulary() {
     </div>
   );
 }
+
