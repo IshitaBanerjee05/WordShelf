@@ -59,12 +59,12 @@ export default function Layout() {
             Settings
           </Link>
           <div className="mt-4 px-4 py-3 flex items-center gap-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-primary-500 to-emerald-500 flex items-center justify-center text-sm font-bold shadow-inner">
-              US
+            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-slate-600 to-slate-500 flex items-center justify-center text-sm font-bold shadow-inner text-slate-300">
+              ?
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">User Student</p>
-              <p className="text-xs text-slate-400 truncate">Pro Plan</p>
+              <p className="text-sm font-medium text-slate-300 truncate">Not logged in</p>
+              <p className="text-xs text-slate-500 truncate">—</p>
             </div>
           </div>
         </div>

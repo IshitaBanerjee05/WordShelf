@@ -2,15 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Sparkles, Volume2, BookmarkPlus, ChevronRight } from 'lucide-react';
 
-const mockVocabulary = [
-  { id: 1, word: 'Ephemeral', pos: 'adj.', meaning: 'Lasting for a very short time.', translation: 'Alpkalik / Kshanik', examples: ['The ephemeral joys of childhood are deeply missed.', 'Fashions are ephemeral.'], strength: 85, addedAt: '2 days ago', source: 'The Great Gatsby' },
-  { id: 2, word: 'Obfuscate', pos: 'verb', meaning: 'Render obscure, unclear, or unintelligible.', translation: 'Aspasht karna / Ghabra dena', examples: ['Politicians often obfuscate issues to avoid committing to a stance.'], strength: 40, addedAt: 'Yesterday', source: 'Article: Modern Politics' },
-  { id: 3, word: 'Mellifluous', pos: 'adj.', meaning: '(of a voice or words) sweet or musical; pleasant to hear.', translation: 'Madhur', examples: ['Her mellifluous voice captivated the entire hall.'], strength: 92, addedAt: '1 week ago', source: 'Sapiens' },
-  { id: 4, word: 'Cacophony', pos: 'noun', meaning: 'A harsh discordant mixture of sounds.', translation: 'Kolahal', examples: ['A cacophony of car horns woke us up.'], strength: 60, addedAt: '4 days ago', source: 'Atomic Habits' },
-];
+const mockVocabulary = [];
 
 export default function Vocabulary() {
-  const [selectedWord, setSelectedWord] = useState(mockVocabulary[0]);
+  const [selectedWord, setSelectedWord] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
 
   return (
@@ -71,27 +66,35 @@ export default function Vocabulary() {
              </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-            {mockVocabulary.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setSelectedWord(item)}
-                className={`w-full text-left p-4 rounded-xl transition-all border ${
-                  selectedWord?.id === item.id 
-                    ? 'bg-primary-50 border-primary-200 shadow-sm' 
-                    : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-1">
-                  <span className={`font-bold ${selectedWord?.id === item.id ? 'text-primary-700' : 'text-slate-800'}`}>{item.word}</span>
-                  <div className={`w-2 h-2 rounded-full mt-1.5 ${item.strength > 80 ? 'bg-emerald-500' : item.strength > 50 ? 'bg-amber-500' : 'bg-red-500'}`}></div>
-                </div>
-                <div className="flex items-center text-xs text-slate-500 gap-2">
-                   <span className="italic">{item.pos}</span>
-                   <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                   <span className="truncate">{item.meaning}</span>
-                </div>
-              </button>
-            ))}
+            {mockVocabulary.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-16 text-slate-400">
+                <BookmarkPlus className="w-10 h-10 opacity-20 mb-3" />
+                <p className="text-sm font-medium text-center">No words saved yet.</p>
+                <p className="text-xs mt-1 text-center px-4">Use "AI Extract" or "Manual Add" to start building your ledger.</p>
+              </div>
+            ) : (
+              mockVocabulary.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedWord(item)}
+                  className={`w-full text-left p-4 rounded-xl transition-all border ${
+                    selectedWord?.id === item.id 
+                      ? 'bg-primary-50 border-primary-200 shadow-sm' 
+                      : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <span className={`font-bold ${selectedWord?.id === item.id ? 'text-primary-700' : 'text-slate-800'}`}>{item.word}</span>
+                    <div className={`w-2 h-2 rounded-full mt-1.5 ${item.strength > 80 ? 'bg-emerald-500' : item.strength > 50 ? 'bg-amber-500' : 'bg-red-500'}`}></div>
+                  </div>
+                  <div className="flex items-center text-xs text-slate-500 gap-2">
+                     <span className="italic">{item.pos}</span>
+                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                     <span className="truncate">{item.meaning}</span>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </div>
 

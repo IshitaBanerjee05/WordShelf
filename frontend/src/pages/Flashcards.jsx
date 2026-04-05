@@ -2,11 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, Check, X, RotateCcw, Target } from 'lucide-react';
 
-const mockCards = [
-  { id: 1, front: 'Melancholy', back: 'A feeling of pensive sadness, typically with no obvious cause.', translation: 'Udaasi', example: 'an air of melancholy surrounded him' },
-  { id: 2, front: 'Quintessential', back: 'Representing the most perfect or typical example of a quality or class.', translation: 'Shrestha udaharan', example: 'he was the quintessential tough guy' },
-  { id: 3, front: 'Serendipity', back: 'The occurrence and development of events by chance in a happy or beneficial way.', translation: 'Nasib / Sanyog', example: 'a fortunate stroke of serendipity' },
-];
+const mockCards = [];
 
 export default function Flashcards() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -29,37 +25,22 @@ export default function Flashcards() {
 
   const activeCard = mockCards[currentIndex];
 
-  if (sessionComplete) {
-     return (
-        <div className="h-full w-full flex flex-col items-center justify-center p-8 bg-slate-50 min-h-[calc(100vh-4rem)]">
-           <motion.div 
-             initial={{ scale: 0.8, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             className="bg-white p-12 rounded-3xl shadow-xl border border-primary-100 max-w-md w-full text-center relative overflow-hidden"
-           >
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-primary-400 to-emerald-400"></div>
-              <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 shadow-inner">
-                 <Target className="w-12 h-12" />
-              </div>
-              <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Session Complete!</h2>
-              <p className="text-slate-500 mb-8 font-medium">You reviewed {mockCards.length} words.</p>
-              
-              <div className="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
-                 <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Accuracy</p>
-                 <div className="text-5xl font-extrabold text-primary-600 font-serif">
-                   {Math.round((score / mockCards.length) * 100)}%
-                 </div>
-              </div>
-
-              <button 
-                onClick={() => { setSessionComplete(false); setCurrentIndex(0); setScore(0); }}
-                className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
-              >
-                 <RotateCcw className="w-5 h-5" /> Start New Session
-              </button>
-           </motion.div>
-        </div>
-     );
+  if (mockCards.length === 0) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center p-8 bg-slate-50 min-h-[calc(100vh-4rem)]">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-white p-12 rounded-3xl shadow-xl border border-slate-100 max-w-md w-full text-center"
+        >
+          <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
+            <Brain className="w-12 h-12" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-2">No Flashcards Yet</h2>
+          <p className="text-slate-500 font-medium">Add words to your Vocabulary Ledger to start a revision session.</p>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
