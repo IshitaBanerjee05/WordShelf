@@ -2,8 +2,28 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Search, Sparkles, Volume2, BookmarkPlus,
-  X, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle
+  X, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Languages
 } from 'lucide-react';
+
+// ─── Language options ──────────────────────────────────────────────────────────
+const LANGUAGES = [
+  { code: 'hi', label: 'Hindi' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'fr', label: 'French' },
+  { code: 'de', label: 'German' },
+  { code: 'ar', label: 'Arabic' },
+  { code: 'zh', label: 'Chinese (Simplified)' },
+  { code: 'ja', label: 'Japanese' },
+  { code: 'pt', label: 'Portuguese' },
+  { code: 'ru', label: 'Russian' },
+  { code: 'ko', label: 'Korean' },
+  { code: 'it', label: 'Italian' },
+  { code: 'tr', label: 'Turkish' },
+  { code: 'bn', label: 'Bengali' },
+  { code: 'ur', label: 'Urdu' },
+  { code: 'nl', label: 'Dutch' },
+  { code: 'sv', label: 'Swedish' },
+];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -312,6 +332,43 @@ export default function Vocabulary() {
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [searchQ, setSearchQ]           = useState('');
 
+  // ── Translation state ──
+  const [transLang, setTransLang]       = useState('hi');   // default: Hindi
+  const [transText, setTransText]       = useState(null);   // translated string
+  const [transLoading, setTransLoading] = useState(false);
+  const [transError, setTransError]     = useState(null);
+
+  // Auto-fetch translation whenever selected word or language changes
+  useEffect(() => {
+    if (!selectedWord) { setTransText(null); return; }
+
+    let cancelled = false;
+    const fetchTranslation = async () => {
+      setTransLoading(true);
+      setTransError(null);
+      setTransText(null);
+      try {
+        const res = await fetch(
+          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(selectedWord.word)}&langpair=en|${transLang}`
+        );
+        const json = await res.json();
+        if (cancelled) return;
+        if (json.responseStatus === 200) {
+          setTransText(json.responseData.translatedText);
+        } else {
+          setTransError('Translation unavailable.');
+        }
+      } catch {
+        if (!cancelled) setTransError('Could not reach translation service.');
+      } finally {
+        if (!cancelled) setTransLoading(false);
+      }
+    };
+
+    fetchTranslation();
+    return () => { cancelled = true; };
+  }, [selectedWord, transLang]);
+
   const toggleManual = () => {
     setIsManualOpen(v => !v);
     if (!isManualOpen) setIsAiOpen(false);
@@ -511,6 +568,47 @@ export default function Vocabulary() {
                 <section>
                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Meaning</h3>
                   <p className="text-lg text-slate-800 leading-relaxed font-medium">{selectedWord.meaning}</p>
+                </section>
+
+                {/* Translation */}
+                <section>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Languages className="w-3.5 h-3.5" /> Translation
+                    </h3>
+                    <div className="relative">
+                      <select
+                        value={transLang}
+                        onChange={e => setTransLang(e.target.value)}
+                        className="text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg pl-2.5 pr-7 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400 appearance-none cursor-pointer hover:border-slate-300 transition-colors"
+                      >
+                        {LANGUAGES.map(l => (
+                          <option key={l.code} value={l.code}>{l.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  <div className="min-h-[44px] flex items-center">
+                    {transLoading && (
+                      <span className="flex items-center gap-2 text-sm text-slate-400">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Translating…
+                      </span>
+                    )}
+                    {!transLoading && transError && (
+                      <span className="text-sm text-red-500">{transError}</span>
+                    )}
+                    {!transLoading && transText && (
+                      <motion.p
+                        key={transText}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-lg font-semibold text-emerald-700 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100"
+                      >
+                        {transText}
+                      </motion.p>
+                    )}
+                  </div>
                 </section>
 
                 {/* Examples */}
