@@ -4,6 +4,7 @@ import {
   Plus, Search, Sparkles, Volume2, BookmarkPlus,
   X, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Languages
 } from 'lucide-react';
+import api from '../utils/api';
 
 // ─── Language options ──────────────────────────────────────────────────────────
 const LANGUAGES = [
@@ -27,13 +28,14 @@ const LANGUAGES = [
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-function buildWordEntry(apiData, chosenDef) {
+function buildWordEntry(apiData, chosenDef, backendId = null) {
   const word = apiData[0].word;
   const phonetics = apiData[0].phonetics ?? [];
   const audioUrl = phonetics.find(p => p.audio)?.audio ?? null;
 
   return {
-    id: Date.now(),
+    id: backendId || Date.now(),
+    backendId,
     word: word.charAt(0).toUpperCase() + word.slice(1),
     pos: chosenDef.partOfSpeech,
     meaning: chosenDef.definition,
@@ -45,6 +47,27 @@ function buildWordEntry(apiData, chosenDef) {
     source: 'Manual — Dictionary',
     addedAt: 'Just now',
     strength: 0,
+  };
+}
+
+// Map backend vocabulary → frontend word entry
+function mapBackendVocab(v) {
+  return {
+    id: v.id,
+    backendId: v.id,
+    word: v.word.charAt(0).toUpperCase() + v.word.slice(1),
+    pos: '',
+    meaning: v.definition || '',
+    examples: v.context_sentence ? [v.context_sentence] : [],
+    synonyms: [],
+    antonyms: [],
+    phonetic: '',
+    audioUrl: null,
+    source: 'Saved',
+    addedAt: new Date(v.created_at).toLocaleDateString(),
+    strength: v.learning_status === 'mastered' ? 100 : v.learning_status === 'learning' ? 50 : 0,
+    learningStatus: v.learning_status,
+    nextReviewDate: v.next_review_date,
   };
 }
 
@@ -77,6 +100,7 @@ function ManualAddPanel({ onClose, onAddWord }) {
   const [defs, setDefs]                 = useState([]);     // flattened definitions
   const [expandedIdx, setExpandedIdx]   = useState(null);
   const [wordAdded, setWordAdded]       = useState(false);
+  const [saving, setSaving]             = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -111,11 +135,32 @@ function ManualAddPanel({ onClose, onAddWord }) {
     }
   };
 
-  const handleAdd = (idx) => {
-    if (wordAdded) return;
-    const entry = buildWordEntry(apiData, defs[idx]);
-    onAddWord(entry);
-    setWordAdded(true);
+  const handleAdd = async (idx) => {
+    if (wordAdded || saving) return;
+    setSaving(true);
+    setError(null);
+
+    try {
+      const chosenDef = defs[idx];
+      // Persist to backend
+      const payload = {
+        word: apiData[0].word,
+        definition: chosenDef.definition,
+        context_sentence: chosenDef.example || null,
+        language: 'en',
+        learning_status: 'new',
+      };
+      const res = await api.post('/vocabulary/', payload);
+
+      const entry = buildWordEntry(apiData, chosenDef, res.data.id);
+      entry.backendId = res.data.id;
+      onAddWord(entry);
+      setWordAdded(true);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save word. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // group defs by part-of-speech for display
@@ -292,17 +337,20 @@ function ManualAddPanel({ onClose, onAddWord }) {
                                     <button
                                       type="button"
                                       onClick={() => handleAdd(idx)}
-                                      disabled={isAdded}
+                                      disabled={isAdded || saving}
                                       className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
                                         isAdded
                                           ? 'bg-emerald-100 text-emerald-700 cursor-default'
                                           : 'bg-slate-900 text-white hover:bg-slate-700 shadow-sm'
                                       }`}
                                     >
-                                      {isAdded
-                                        ? <><CheckCircle2 className="w-3.5 h-3.5" /> Added to Ledger</>
-                                        : <><Plus className="w-3.5 h-3.5" /> Add to Ledger</>
-                                      }
+                                      {saving ? (
+                                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</>
+                                      ) : isAdded ? (
+                                        <><CheckCircle2 className="w-3.5 h-3.5" /> Added to Ledger</>
+                                      ) : (
+                                        <><Plus className="w-3.5 h-3.5" /> Add to Ledger</>
+                                      )}
                                     </button>
                                   </div>
                                 </div>
@@ -331,12 +379,29 @@ export default function Vocabulary() {
   const [isAiOpen, setIsAiOpen]         = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const [searchQ, setSearchQ]           = useState('');
+  const [loadingVocab, setLoadingVocab] = useState(true);
 
   // ── Translation state ──
   const [transLang, setTransLang]       = useState('hi');   // default: Hindi
   const [transText, setTransText]       = useState(null);   // translated string
   const [transLoading, setTransLoading] = useState(false);
   const [transError, setTransError]     = useState(null);
+
+  // Fetch vocabulary from backend on mount
+  useEffect(() => {
+    const fetchVocab = async () => {
+      try {
+        const res = await api.get('/vocabulary/');
+        const mapped = res.data.map(mapBackendVocab);
+        setVocabulary(mapped);
+      } catch (err) {
+        console.error('Failed to fetch vocabulary:', err);
+      } finally {
+        setLoadingVocab(false);
+      }
+    };
+    fetchVocab();
+  }, []);
 
   // Auto-fetch translation whenever selected word or language changes
   useEffect(() => {
@@ -486,7 +551,12 @@ export default function Vocabulary() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-            {filtered.length === 0 ? (
+            {loadingVocab ? (
+              <div className="flex flex-col items-center justify-center h-full py-16 text-slate-400">
+                <Loader2 className="w-8 h-8 animate-spin mb-3" />
+                <p className="text-sm font-medium">Loading vocabulary…</p>
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full py-16 text-slate-400">
                 <BookmarkPlus className="w-10 h-10 opacity-20 mb-3" />
                 <p className="text-sm font-medium text-center">
@@ -520,8 +590,8 @@ export default function Vocabulary() {
                     }`} />
                   </div>
                   <div className="flex items-center text-xs text-slate-500 gap-2">
-                    <span className="italic">{item.pos}</span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    {item.pos && <span className="italic">{item.pos}</span>}
+                    {item.pos && <span className="w-1 h-1 rounded-full bg-slate-300" />}
                     <span className="truncate">{item.meaning}</span>
                   </div>
                 </button>
@@ -542,9 +612,11 @@ export default function Vocabulary() {
                     {selectedWord.phonetic && (
                       <span className="text-slate-400 font-mono text-base">{selectedWord.phonetic}</span>
                     )}
-                    <span className="italic text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md">
-                      {selectedWord.pos}
-                    </span>
+                    {selectedWord.pos && (
+                      <span className="italic text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md">
+                        {selectedWord.pos}
+                      </span>
+                    )}
                     {selectedWord.audioUrl && (
                       <button
                         onClick={() => new Audio(selectedWord.audioUrl).play()}

@@ -4,6 +4,7 @@ import {
   Plus, Search, BookOpen, MoreVertical, X,
   Loader2, AlertCircle, CheckCircle2, ChevronDown
 } from 'lucide-react';
+import api from '../utils/api';
 
 // ─── Open Library helpers ──────────────────────────────────────────────────────
 
@@ -13,19 +14,30 @@ function coverUrl(coverId, size = 'M') {
   return coverId ? `${COVER_BASE}/${coverId}-${size}.jpg` : null;
 }
 
-function buildShelfEntry(olBook, status) {
+// Map backend book → frontend card format
+function mapBackendBook(b) {
   return {
-    id: Date.now() + Math.random(),
-    title: olBook.title,
-    author: olBook.author_name?.[0] ?? 'Unknown Author',
-    year: olBook.first_publish_year ?? null,
-    cover: coverUrl(olBook.cover_i, 'L'),
-    coverId: olBook.cover_i ?? null,
-    status,
-    progress: status === 'Completed' ? 100 : 0,
+    id: b.id,
+    title: b.title,
+    author: b.author || 'Unknown Author',
+    year: null,
+    cover: null,
+    coverId: null,
+    status: b.status === 'to_read' ? 'Planned' : b.status === 'reading' ? 'Reading' : 'Completed',
+    progress: b.total_pages ? Math.round((b.current_page / b.total_pages) * 100) : 0,
     wordsLearned: 0,
-    olKey: olBook.key,
+    olKey: null,
+    backendId: b.id,
   };
+}
+
+// Map frontend status → backend status
+function mapStatus(frontendStatus) {
+  switch (frontendStatus) {
+    case 'Reading': return 'reading';
+    case 'Completed': return 'completed';
+    case 'Planned': default: return 'to_read';
+  }
 }
 
 // ─── AddResourcePanel ──────────────────────────────────────────────────────────
@@ -46,6 +58,7 @@ function AddResourcePanel({ onClose, onAddBook }) {
   const [selected, setSelected] = useState(null); // chosen search result
   const [status, setStatus]     = useState('Reading');
   const [added, setAdded]       = useState(false);
+  const [saving, setSaving]     = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -77,11 +90,43 @@ function AddResourcePanel({ onClose, onAddBook }) {
     }
   };
 
-  const handleAdd = () => {
-    if (!selected || added) return;
-    const entry = buildShelfEntry(selected, status);
-    onAddBook(entry);
-    setAdded(true);
+  const handleAdd = async () => {
+    if (!selected || added || saving) return;
+    setSaving(true);
+    setError(null);
+
+    try {
+      const bookPayload = {
+        title: selected.title,
+        author: selected.author_name?.[0] ?? 'Unknown Author',
+        total_pages: 0,
+        current_page: 0,
+        status: mapStatus(status),
+        language: 'en',
+      };
+      const res = await api.post('/bookshelf/', bookPayload);
+      
+      // Build frontend entry from backend response
+      const entry = {
+        id: res.data.id,
+        title: res.data.title,
+        author: res.data.author || 'Unknown',
+        year: selected.first_publish_year ?? null,
+        cover: coverUrl(selected.cover_i, 'L'),
+        coverId: selected.cover_i ?? null,
+        status,
+        progress: status === 'Completed' ? 100 : 0,
+        wordsLearned: 0,
+        olKey: selected.key,
+        backendId: res.data.id,
+      };
+      onAddBook(entry);
+      setAdded(true);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save book. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -248,21 +293,24 @@ function AddResourcePanel({ onClose, onAddBook }) {
                   <button
                     type="button"
                     onClick={handleAdd}
-                    disabled={added}
+                    disabled={added || saving}
                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
                       added
                         ? 'bg-emerald-100 text-emerald-700 cursor-default'
                         : 'bg-primary-600 text-white hover:bg-primary-700 shadow-md shadow-primary-500/25'
                     }`}
                   >
-                    {added
-                      ? <><CheckCircle2 className="w-4 h-4" /> Added to Shelf</>
-                      : <><Plus className="w-4 h-4" /> Add to Shelf</>
-                    }
+                    {saving ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
+                    ) : added ? (
+                      <><CheckCircle2 className="w-4 h-4" /> Added to Shelf</>
+                    ) : (
+                      <><Plus className="w-4 h-4" /> Add to Shelf</>
+                    )}
                   </button>
 
                   {/* back to results */}
-                  {!added && (
+                  {!added && !saving && (
                     <button
                       type="button"
                       onClick={() => setSelected(null)}
@@ -362,10 +410,27 @@ export default function Bookshelf() {
   const [activeTab, setActiveTab]   = useState('All');
   const [searchQ, setSearchQ]       = useState('');
   const [isAdding, setIsAdding]     = useState(false);
+  const [loadingBooks, setLoadingBooks] = useState(true);
+
+  // Fetch books from backend on mount
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const res = await api.get('/bookshelf/');
+        const mapped = res.data.map(mapBackendBook);
+        setBooks(mapped);
+      } catch (err) {
+        console.error('Failed to fetch books:', err);
+      } finally {
+        setLoadingBooks(false);
+      }
+    };
+    fetchBooks();
+  }, []);
 
   const handleAddBook = (entry) => {
     setBooks(prev => {
-      const isDupe = prev.some(b => b.olKey === entry.olKey);
+      const isDupe = prev.some(b => b.backendId === entry.backendId);
       if (isDupe) return prev;
       return [entry, ...prev];
     });
@@ -448,7 +513,12 @@ export default function Bookshelf() {
       </div>
 
       {/* Grid */}
-      {isEmpty ? (
+      {loadingBooks ? (
+        <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+          <Loader2 className="w-10 h-10 animate-spin mb-4" />
+          <p className="font-medium text-sm">Loading your bookshelf…</p>
+        </div>
+      ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center py-24 text-slate-400">
           <BookOpen className="w-16 h-16 opacity-20 mb-4" />
           <p className="font-semibold text-base">
