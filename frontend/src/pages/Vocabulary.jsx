@@ -70,13 +70,13 @@ function extractDefs(apiData) {
 // ─── ManualAddPanel ────────────────────────────────────────────────────────────
 
 function ManualAddPanel({ onClose, onAddWord }) {
-  const [query, setQuery]               = useState('');
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState(null);
-  const [apiData, setApiData]           = useState(null);   // raw API response
-  const [defs, setDefs]                 = useState([]);     // flattened definitions
-  const [expandedIdx, setExpandedIdx]   = useState(null);
-  const [wordAdded, setWordAdded]       = useState(false);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [apiData, setApiData] = useState(null);   // raw API response
+  const [defs, setDefs] = useState([]);     // flattened definitions
+  const [expandedIdx, setExpandedIdx] = useState(null);
+  const [wordAdded, setWordAdded] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -234,11 +234,10 @@ function ManualAddPanel({ onClose, onAddWord }) {
                       return (
                         <div
                           key={idx}
-                          className={`rounded-xl border transition-all ${
-                            isAdded
+                          className={`rounded-xl border transition-all ${isAdded
                               ? 'bg-emerald-50 border-emerald-200'
                               : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                          }`}
+                            }`}
                         >
                           {/* definition row */}
                           <button
@@ -293,11 +292,10 @@ function ManualAddPanel({ onClose, onAddWord }) {
                                       type="button"
                                       onClick={() => handleAdd(idx)}
                                       disabled={isAdded}
-                                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                                        isAdded
+                                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${isAdded
                                           ? 'bg-emerald-100 text-emerald-700 cursor-default'
                                           : 'bg-slate-900 text-white hover:bg-slate-700 shadow-sm'
-                                      }`}
+                                        }`}
                                     >
                                       {isAdded
                                         ? <><CheckCircle2 className="w-3.5 h-3.5" /> Added to Ledger</>
@@ -325,18 +323,47 @@ function ManualAddPanel({ onClose, onAddWord }) {
 
 // ─── Main Vocabulary page ──────────────────────────────────────────────────────
 
+import api from '../services/api';
+
+// Maps a DB vocabulary record → the shape the UI expects
+const mapDbToUi = (record) => ({
+  id: record.id,
+  word: record.word,
+  meaning: record.definition || '',
+  pos: '',   // not stored in DB; enriched from dictionary lookup only
+  examples: record.context_sentence ? [record.context_sentence] : [],
+  synonyms: [],
+  antonyms: [],
+  phonetic: '',
+  audioUrl: null,
+  source: 'Saved',
+  addedAt: record.created_at
+    ? new Date(record.created_at).toLocaleDateString()
+    : '',
+  strength: record.learning_status === 'mastered' ? 100
+    : record.learning_status === 'learning' ? 50
+    : 0,
+  learning_status: record.learning_status,
+});
+
 export default function Vocabulary() {
-  const [vocabulary, setVocabulary]     = useState([]);
+  const [vocabulary, setVocabulary] = useState([]);
   const [selectedWord, setSelectedWord] = useState(null);
-  const [isAiOpen, setIsAiOpen]         = useState(false);
+  const [isAiOpen, setIsAiOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
-  const [searchQ, setSearchQ]           = useState('');
+  const [searchQ, setSearchQ] = useState('');
+
+  useEffect(() => {
+    api.get('/vocabulary/')
+      .then(res => setVocabulary(res.data.map(mapDbToUi)))
+      .catch(console.error);
+  }, []);
 
   // ── Translation state ──
-  const [transLang, setTransLang]       = useState('hi');   // default: Hindi
-  const [transText, setTransText]       = useState(null);   // translated string
+  const [transLang, setTransLang] = useState('hi');   // default: Hindi
+  const [transText, setTransText] = useState(null);   // translated string
   const [transLoading, setTransLoading] = useState(false);
-  const [transError, setTransError]     = useState(null);
+  const [transError, setTransError] = useState(null);
 
   // Auto-fetch translation whenever selected word or language changes
   useEffect(() => {
@@ -379,16 +406,42 @@ export default function Vocabulary() {
     if (!isAiOpen) setIsManualOpen(false);
   };
 
-  const handleAddWord = (entry) => {
-    setVocabulary(prev => {
-      // avoid exact duplicates (same word + same definition)
-      const isDupe = prev.some(
-        w => w.word.toLowerCase() === entry.word.toLowerCase() && w.meaning === entry.meaning
-      );
-      if (isDupe) return prev;
-      return [entry, ...prev];
-    });
-    setSelectedWord(entry);
+  const handleAddWord = async (entry) => {
+    try {
+      const vocabData = {
+        word: entry.word,
+        definition: entry.meaning,
+        translation: '',
+        context_sentence: entry.examples?.[0] || '',
+      };
+      const res = await api.post('/vocabulary/', vocabData);
+
+      // Map the DB record, then overlay the rich fields from the dictionary entry
+      // (phonetic, audioUrl, synonyms, antonyms, pos, examples) which aren't stored in DB
+      const newVocab = {
+        ...mapDbToUi(res.data),
+        phonetic: entry.phonetic || '',
+        audioUrl: entry.audioUrl || null,
+        synonyms: entry.synonyms || [],
+        antonyms: entry.antonyms || [],
+        pos: entry.pos || '',
+        examples: entry.examples || [],
+        source: entry.source || 'Manual — Dictionary',
+        addedAt: 'Just now',
+      };
+
+      setVocabulary(prev => {
+        const isDupe = prev.some(
+          w => w.word.toLowerCase() === newVocab.word.toLowerCase() && w.id !== newVocab.id
+        );
+        if (isDupe) return prev;
+        return [newVocab, ...prev];
+      });
+      setSelectedWord(newVocab);
+    } catch (e) {
+      console.error('Failed to save word:', e);
+      alert('Could not save word. Make sure you are logged in and the backend is running.');
+    }
   };
 
   const filtered = vocabulary.filter(w =>
@@ -419,11 +472,10 @@ export default function Vocabulary() {
           {/* Manual Add */}
           <button
             onClick={toggleManual}
-            className={`flex items-center justify-center gap-2 px-5 py-2.5 font-medium rounded-xl shadow-lg transition-all hover:-translate-y-0.5 ${
-              isManualOpen
+            className={`flex items-center justify-center gap-2 px-5 py-2.5 font-medium rounded-xl shadow-lg transition-all hover:-translate-y-0.5 ${isManualOpen
                 ? 'bg-slate-700 text-white shadow-slate-700/30'
                 : 'bg-slate-900 text-white shadow-slate-900/20 hover:bg-slate-800'
-            }`}
+              }`}
           >
             <Plus className="w-5 h-5" />
             Manual Add
@@ -503,21 +555,19 @@ export default function Vocabulary() {
                 <button
                   key={item.id}
                   onClick={() => setSelectedWord(item)}
-                  className={`w-full text-left p-4 rounded-xl transition-all border ${
-                    selectedWord?.id === item.id
+                  className={`w-full text-left p-4 rounded-xl transition-all border ${selectedWord?.id === item.id
                       ? 'bg-primary-50 border-primary-200 shadow-sm'
                       : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
-                  }`}
+                    }`}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className={`font-bold ${selectedWord?.id === item.id ? 'text-primary-700' : 'text-slate-800'}`}>
                       {item.word}
                     </span>
-                    <div className={`w-2 h-2 rounded-full mt-1.5 ${
-                      item.strength > 80 ? 'bg-emerald-500'
-                      : item.strength > 50 ? 'bg-amber-500'
-                      : 'bg-red-400'
-                    }`} />
+                    <div className={`w-2 h-2 rounded-full mt-1.5 ${item.strength > 80 ? 'bg-emerald-500'
+                        : item.strength > 50 ? 'bg-amber-500'
+                          : 'bg-red-400'
+                      }`} />
                   </div>
                   <div className="flex items-center text-xs text-slate-500 gap-2">
                     <span className="italic">{item.pos}</span>

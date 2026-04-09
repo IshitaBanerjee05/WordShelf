@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { BookMarked, Home, Library, BookOpenCheck, Settings } from "lucide-react";
 import { cn } from "../utils/cn";
+import { useAuth } from "../context/useAuth";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -11,6 +12,11 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="flex bg-gray-50 min-h-screen items-center justify-center">Loading context...</div>;
+  }
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
@@ -59,11 +65,11 @@ export default function Layout() {
             Settings
           </Link>
           <div className="mt-4 px-4 py-3 flex items-center gap-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-slate-600 to-slate-500 flex items-center justify-center text-sm font-bold shadow-inner text-slate-300">
-              ?
+            <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-slate-600 to-slate-500 flex items-center justify-center text-sm font-bold shadow-inner text-slate-300 uppercase">
+              {user?.username?.[0] || '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-300 truncate">Not logged in</p>
+              <p className="text-sm font-medium text-slate-300 truncate">{user?.username || 'Not logged in'}</p>
               <p className="text-xs text-slate-500 truncate">—</p>
             </div>
           </div>

@@ -39,13 +39,13 @@ const STATUS_COLORS = {
 };
 
 function AddResourcePanel({ onClose, onAddBook }) {
-  const [query, setQuery]       = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
-  const [results, setResults]   = useState([]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null); // chosen search result
-  const [status, setStatus]     = useState('Reading');
-  const [added, setAdded]       = useState(false);
+  const [status, setStatus] = useState('Reading');
+  const [added, setAdded] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -249,11 +249,10 @@ function AddResourcePanel({ onClose, onAddBook }) {
                     type="button"
                     onClick={handleAdd}
                     disabled={added}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-lg transition-all ${
-                      added
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-lg transition-all ${added
                         ? 'bg-emerald-100 text-emerald-700 cursor-default'
                         : 'bg-primary-600 text-white hover:bg-primary-700 shadow-md shadow-primary-500/25'
-                    }`}
+                      }`}
                   >
                     {added
                       ? <><CheckCircle2 className="w-4 h-4" /> Added to Shelf</>
@@ -357,18 +356,44 @@ function BookCard({ book, idx }) {
 
 const TABS = ['All', 'Reading', 'Completed', 'Planned'];
 
-export default function Bookshelf() {
-  const [books, setBooks]           = useState([]);
-  const [activeTab, setActiveTab]   = useState('All');
-  const [searchQ, setSearchQ]       = useState('');
-  const [isAdding, setIsAdding]     = useState(false);
+import api from '../services/api';
 
-  const handleAddBook = (entry) => {
-    setBooks(prev => {
-      const isDupe = prev.some(b => b.olKey === entry.olKey);
-      if (isDupe) return prev;
-      return [entry, ...prev];
-    });
+export default function Bookshelf() {
+  const [books, setBooks] = useState([]);
+  const [activeTab, setActiveTab] = useState('All');
+  const [searchQ, setSearchQ] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+
+  useEffect(() => {
+    api.get('/bookshelf/').then(res => setBooks(res.data)).catch(console.error);
+  }, []);
+
+  const handleAddBook = async (entry) => {
+    try {
+      const bookData = {
+        title: entry.title,
+        author: entry.author,
+        total_pages: 0,
+        current_page: 0,
+        status: entry.status === 'Completed' ? 'completed' : entry.status === 'Reading' ? 'reading' : 'to_read'
+      };
+      const res = await api.post('/bookshelf/', bookData);
+      // Format response to match UI properties
+      const newBook = {
+        id: res.data.id,
+        title: res.data.title,
+        author: res.data.author,
+        year: entry.year,
+        cover: entry.cover,
+        status: res.data.status === 'completed' ? 'Completed' : res.data.status === 'reading' ? 'Reading' : 'Planned',
+        progress: entry.progress,
+        wordsLearned: 0,
+        olKey: entry.olKey,
+      };
+      setBooks(prev => [newBook, ...prev]);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // filter by tab + search
@@ -391,11 +416,10 @@ export default function Bookshelf() {
         </div>
         <button
           onClick={() => setIsAdding(v => !v)}
-          className={`flex items-center gap-2 px-5 py-2.5 font-medium rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 ${
-            isAdding
+          className={`flex items-center gap-2 px-5 py-2.5 font-medium rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95 ${isAdding
               ? 'bg-slate-700 text-white shadow-slate-700/30'
               : 'bg-primary-600 text-white shadow-primary-500/30 hover:bg-primary-700'
-          }`}
+            }`}
         >
           <Plus className="w-5 h-5" />
           {isAdding ? 'Close' : 'Add Resource'}
@@ -420,9 +444,8 @@ export default function Bookshelf() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex-1 md:flex-none text-center ${
-                activeTab === tab ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all flex-1 md:flex-none text-center ${activeTab === tab ? 'bg-white text-primary-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
             >
               {tab}
               {tab !== 'All' && (
