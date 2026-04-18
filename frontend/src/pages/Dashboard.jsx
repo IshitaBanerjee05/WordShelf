@@ -1,37 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { TrendingUp, BookOpen, Brain, Flame, Target } from 'lucide-react';
+import { TrendingUp, BookOpen, Brain, Flame, Target, Loader2 } from 'lucide-react';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import { motion } from 'framer-motion';
-
-const data = [
-  { name: 'Mon', words: 12 },
-  { name: 'Tue', words: 19 },
-  { name: 'Wed', words: 15 },
-  { name: 'Thu', words: 22 },
-  { name: 'Fri', words: 30 },
-  { name: 'Sat', words: 45 },
-  { name: 'Sun', words: 38 },
-];
-
-const activityData = [
-  { date: '2026-03-01', count: 1 },
-  { date: '2026-03-02', count: 3 },
-  { date: '2026-03-03', count: 0 },
-  { date: '2026-03-04', count: 4 },
-  { date: '2026-03-05', count: 2 },
-  { date: '2026-03-06', count: 5 },
-  { date: '2026-03-07', count: 6 },
-  { date: '2026-03-08', count: 3 },
-  { date: '2026-03-09', count: 4 },
-  { date: '2026-03-10', count: 5 },
-  { date: '2026-03-11', count: 2 },
-  { date: '2026-03-12', count: 1 },
-  { date: '2026-03-13', count: 6 },
-  { date: '2026-03-14', count: 4 },
-  { date: '2026-03-15', count: 7 },
-];
+import api from '../utils/api';
 
 const StatCard = ({ title, value, icon: Icon, trend, colorClass }) => (
   <motion.div 
@@ -58,33 +31,51 @@ const StatCard = ({ title, value, icon: Icon, trend, colorClass }) => (
 );
 
 export default function Dashboard() {
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const res = await api.get('/analytics/');
+        setAnalytics(res.data);
+      } catch (err) {
+        console.error('Failed to fetch analytics:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
+
+  const data = [];
+  const activityData = [];
+
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Total Words Learned" 
-          value="1,284" 
-          trend="+12%" 
+          value={loading ? '…' : (analytics?.total_vocabulary ?? 0).toString()} 
           icon={Brain} 
           colorClass="bg-primary-50 text-primary-600 shadow-inner shadow-primary-100/50" 
         />
         <StatCard 
-          title="Current Streak" 
-          value="14 Days" 
+          title="Words Mastered" 
+          value={loading ? '…' : (analytics?.mastered_vocabulary ?? 0).toString()} 
           icon={Flame} 
           colorClass="bg-orange-50 text-orange-500 shadow-inner shadow-orange-100/50" 
         />
         <StatCard 
           title="Books Read" 
-          value="8" 
+          value={loading ? '…' : (analytics?.books_completed ?? 0).toString()} 
           icon={BookOpen} 
           colorClass="bg-purple-50 text-purple-600 shadow-inner shadow-purple-100/50" 
         />
         <StatCard 
           title="RI Score" 
-          value="94.2" 
-          trend="+2.1" 
+          value={loading ? '…' : (analytics?.reading_intelligence_score ?? 100).toString()} 
           icon={Target} 
           colorClass="bg-emerald-50 text-emerald-600 shadow-inner shadow-emerald-100/50" 
         />
@@ -162,7 +153,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* Suggested Revision (Mock) */}
+      {/* Summary Stats */}
       <motion.div 
          initial={{ opacity: 0, scale: 0.95 }}
          animate={{ opacity: 1, scale: 1 }}
@@ -170,31 +161,34 @@ export default function Dashboard() {
          className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"
       >
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-slate-900">Suggested Revision</h3>
-          <button className="text-sm text-primary-600 font-medium hover:text-primary-700">View All</button>
+          <h3 className="text-lg font-bold text-slate-900">Reading Summary</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-           {/* Mock Flashcard Preview */}
-           {[
-             { word: 'Ephemeral', context: 'The ephemeral nature of the morning mist.', book: 'Nature Walk' },
-             { word: 'Obfuscate', context: 'He tried to obfuscate the truth with jargon.', book: 'The Trial' },
-             { word: 'Sycophant', context: 'Surrounded by sycophants, the king grew ignorant.', book: 'Empire Falls' }
-           ].map((item, idx) => (
-             <div key={idx} className="group relative p-5 bg-slate-50 rounded-xl border border-slate-200 hover:border-primary-300 transition-colors cursor-pointer overflow-hidden">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary-100 to-emerald-100 rounded-bl-full opacity-50 group-hover:scale-110 transition-transform"></div>
-                <div className="relative z-10">
-                  <h4 className="text-xl font-bold text-slate-900 mb-1">{item.word}</h4>
-                  <p className="text-sm text-slate-500 mb-3 italic">"{item.context}"</p>
-                  <div className="flex items-center mt-4">
-                     <span className="text-xs font-semibold px-2.5 py-1 bg-slate-200 text-slate-600 rounded-full">{item.book}</span>
-                  </div>
-                </div>
-             </div>
-           ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12 text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-2xl font-bold text-slate-900">{analytics?.total_books ?? 0}</p>
+              <p className="text-sm text-slate-500 mt-1">Total Books</p>
+            </div>
+            <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-2xl font-bold text-slate-900">{analytics?.total_pages_read ?? 0}</p>
+              <p className="text-sm text-slate-500 mt-1">Pages Read</p>
+            </div>
+            <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-2xl font-bold text-slate-900">{analytics?.learning_vocabulary ?? 0}</p>
+              <p className="text-sm text-slate-500 mt-1">Words Learning</p>
+            </div>
+            <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-2xl font-bold text-slate-900">{analytics?.mastered_vocabulary ?? 0}</p>
+              <p className="text-sm text-slate-500 mt-1">Words Mastered</p>
+            </div>
+          </div>
+        )}
       </motion.div>
 
     </div>
   );
 }
-

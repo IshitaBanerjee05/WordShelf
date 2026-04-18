@@ -1,66 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Brain, Check, X, RotateCcw, Target } from 'lucide-react';
-
-const mockCards = [
-  { id: 1, front: 'Melancholy', back: 'A feeling of pensive sadness, typically with no obvious cause.', translation: 'Udaasi', example: 'an air of melancholy surrounded him' },
-  { id: 2, front: 'Quintessential', back: 'Representing the most perfect or typical example of a quality or class.', translation: 'Shrestha udaharan', example: 'he was the quintessential tough guy' },
-  { id: 3, front: 'Serendipity', back: 'The occurrence and development of events by chance in a happy or beneficial way.', translation: 'Nasib / Sanyog', example: 'a fortunate stroke of serendipity' },
-];
+import { Sparkles, Brain, Check, X, RotateCcw, Target, Loader2 } from 'lucide-react';
+import api from '../utils/api';
 
 export default function Flashcards() {
+  const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [score, setScore] = useState(0);
 
-  const handleNext = (correct) => {
+  // Fetch due review items from backend
+  useEffect(() => {
+    const fetchDueCards = async () => {
+      try {
+        const res = await api.get('/vocabulary/review/due?limit=20');
+        const mapped = res.data.map(v => ({
+          id: v.id,
+          front: v.word.charAt(0).toUpperCase() + v.word.slice(1),
+          back: v.definition || 'No definition available',
+          example: v.context_sentence || '',
+          translation: '',
+        }));
+        setCards(mapped);
+      } catch (err) {
+        console.error('Failed to fetch flashcards:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDueCards();
+  }, []);
+
+  const handleNext = async (correct) => {
     if (correct) setScore(s => s + 1);
     setIsFlipped(false);
+
+    // Submit review to backend
+    const activeCard = cards[currentIndex];
+    if (activeCard) {
+      try {
+        await api.post(`/vocabulary/${activeCard.id}/review`, {
+          quality: correct ? 4 : 2,
+        });
+      } catch (err) {
+        console.error('Failed to submit review:', err);
+      }
+    }
     
     setTimeout(() => {
-        if (currentIndex < mockCards.length - 1) {
+        if (currentIndex < cards.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
             setSessionComplete(true);
         }
-    }, 150); // slight delay to allow flip animation to start
+    }, 150);
   };
 
-  const activeCard = mockCards[currentIndex];
+  const handleRestart = () => {
+    setCurrentIndex(0);
+    setIsFlipped(false);
+    setSessionComplete(false);
+    setScore(0);
+  };
+
+  if (loading) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center p-8 bg-slate-50 min-h-[calc(100vh-4rem)]">
+        <Loader2 className="w-10 h-10 text-primary-500 animate-spin mb-4" />
+        <p className="text-slate-400 font-medium text-sm">Loading flashcards…</p>
+      </div>
+    );
+  }
+
+  if (cards.length === 0) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center p-8 bg-slate-50 min-h-[calc(100vh-4rem)]">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-white p-12 rounded-3xl shadow-xl border border-slate-100 max-w-md w-full text-center"
+        >
+          <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
+            <Brain className="w-12 h-12" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-2">No Flashcards Due</h2>
+          <p className="text-slate-500 font-medium">Add words to your Vocabulary Ledger to start a revision session. Words due for review will appear here.</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (sessionComplete) {
-     return (
-        <div className="h-full w-full flex flex-col items-center justify-center p-8 bg-slate-50 min-h-[calc(100vh-4rem)]">
-           <motion.div 
-             initial={{ scale: 0.8, opacity: 0 }}
-             animate={{ scale: 1, opacity: 1 }}
-             className="bg-white p-12 rounded-3xl shadow-xl border border-primary-100 max-w-md w-full text-center relative overflow-hidden"
-           >
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-primary-400 to-emerald-400"></div>
-              <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500 shadow-inner">
-                 <Target className="w-12 h-12" />
-              </div>
-              <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Session Complete!</h2>
-              <p className="text-slate-500 mb-8 font-medium">You reviewed {mockCards.length} words.</p>
-              
-              <div className="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
-                 <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Accuracy</p>
-                 <div className="text-5xl font-extrabold text-primary-600 font-serif">
-                   {Math.round((score / mockCards.length) * 100)}%
-                 </div>
-              </div>
-
-              <button 
-                onClick={() => { setSessionComplete(false); setCurrentIndex(0); setScore(0); }}
-                className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
-              >
-                 <RotateCcw className="w-5 h-5" /> Start New Session
-              </button>
-           </motion.div>
-        </div>
-     );
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center p-8 bg-slate-50 min-h-[calc(100vh-4rem)]">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-white p-12 rounded-3xl shadow-xl border border-slate-100 max-w-md w-full text-center"
+        >
+          <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500">
+            <Target className="w-12 h-12" />
+          </div>
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-2">Session Complete!</h2>
+          <p className="text-slate-500 font-medium mb-6">
+            You got <span className="text-emerald-600 font-bold">{score}</span> out of <span className="font-bold">{cards.length}</span> correct.
+          </p>
+          <button
+            onClick={handleRestart}
+            className="flex items-center gap-2 mx-auto px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 shadow-lg shadow-primary-500/30 transition-all"
+          >
+            <RotateCcw className="w-4 h-4" /> Review Again
+          </button>
+        </motion.div>
+      </div>
+    );
   }
+
+  const activeCard = cards[currentIndex];
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-50 p-8">
@@ -75,7 +133,7 @@ export default function Flashcards() {
             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
                <span className="text-sm font-bold text-slate-700">{currentIndex + 1}</span>
                <span className="text-slate-400">/</span>
-               <span className="text-sm font-medium text-slate-500">{mockCards.length}</span>
+               <span className="text-sm font-medium text-slate-500">{cards.length}</span>
             </div>
          </div>
 
@@ -83,7 +141,7 @@ export default function Flashcards() {
              <motion.div 
                className="h-full bg-primary-500 rounded-full"
                initial={{ width: 0 }}
-               animate={{ width: `${((currentIndex) / mockCards.length) * 100}%` }}
+               animate={{ width: `${((currentIndex) / cards.length) * 100}%` }}
                transition={{ duration: 0.5 }}
              ></motion.div>
          </div>
@@ -116,18 +174,21 @@ export default function Flashcards() {
                       <div className="w-full">
                          <span className="text-sm font-bold text-emerald-500 tracking-widest uppercase mb-4 block">Meaning</span>
                          <p className="text-2xl text-slate-800 font-medium leading-relaxed mb-6">"{activeCard.back}"</p>
-                         <div className="w-16 h-1 bg-slate-200 mx-auto my-6 rounded-full"></div>
-                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3">
-                            <p className="text-emerald-700 font-medium"><span className="text-slate-400 text-sm mr-2">Hindi:</span>{activeCard.translation}</p>
-                            <p className="text-slate-600 italic font-serif text-lg">"{activeCard.example}"</p>
-                         </div>
+                         {activeCard.example && (
+                           <>
+                             <div className="w-16 h-1 bg-slate-200 mx-auto my-6 rounded-full"></div>
+                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3">
+                                <p className="text-slate-600 italic font-serif text-lg">"{activeCard.example}"</p>
+                             </div>
+                           </>
+                         )}
                       </div>
                    )}
                 </motion.div>
             </AnimatePresence>
          </div>
 
-         {/* Contol Buttons - visible only when flipped */}
+         {/* Control Buttons - visible only when flipped */}
          <AnimatePresence>
             {isFlipped && (
                <motion.div 
@@ -157,4 +218,3 @@ export default function Flashcards() {
     </div>
   );
 }
-

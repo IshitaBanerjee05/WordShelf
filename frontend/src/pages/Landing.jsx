@@ -2,8 +2,13 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BookOpen, Sparkles, BrainCircuit, ChevronRight } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 export default function Landing() {
+  const { isAuthenticated } = useAuth();
+
+  const ctaTarget = isAuthenticated ? '/dashboard' : '/login';
+
   return (
     <div className="min-h-screen bg-slate-50 selection:bg-primary-200">
       {/* Navbar */}
@@ -13,8 +18,14 @@ export default function Landing() {
            <span className="text-2xl font-bold tracking-tight text-slate-900">WordShelf</span>
         </div>
         <div className="flex items-center gap-6">
-          <Link to="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Log in</Link>
-          <Link to="/dashboard" className="px-5 py-2.5 text-sm font-medium text-white bg-slate-900 rounded-full hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all hover:scale-105 active:scale-95">Go to App</Link>
+          {isAuthenticated ? (
+            <Link to="/dashboard" className="px-5 py-2.5 text-sm font-medium text-white bg-slate-900 rounded-full hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all hover:scale-105 active:scale-95">Go to Dashboard</Link>
+          ) : (
+            <>
+              <Link to="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Log in</Link>
+              <Link to="/register" className="px-5 py-2.5 text-sm font-medium text-white bg-slate-900 rounded-full hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all hover:scale-105 active:scale-95">Get Started</Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -55,7 +66,7 @@ export default function Landing() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex items-center justify-center gap-4"
         >
-           <Link to="/dashboard" className="group flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold text-white bg-primary-600 rounded-full hover:bg-primary-700 shadow-xl shadow-primary-600/30 transition-all hover:scale-105 active:scale-95">
+           <Link to={ctaTarget} className="group flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold text-white bg-primary-600 rounded-full hover:bg-primary-700 shadow-xl shadow-primary-600/30 transition-all hover:scale-105 active:scale-95">
              Start Learning Now
              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
            </Link>
@@ -82,9 +93,9 @@ export default function Landing() {
                        </div>
                        <div className="flex-1 p-8">
                             <div className="flex gap-6 mb-8">
-                               <div className="h-32 flex-1 bg-white border border-slate-100 rounded-xl shadow-sm p-6 flex flex-col justify-between"><div className="h-4 w-1/2 bg-slate-100 rounded"></div><div className="h-8 w-1/3 bg-primary-100 rounded"></div></div>
-                               <div className="h-32 flex-1 bg-white border border-slate-100 rounded-xl shadow-sm p-6 flex flex-col justify-between"><div className="h-4 w-1/2 bg-slate-100 rounded"></div><div className="h-8 w-1/3 bg-emerald-100 rounded"></div></div>
-                               <div className="h-32 flex-1 bg-white border border-slate-100 rounded-xl shadow-sm p-6 flex flex-col justify-between"><div className="h-4 w-1/2 bg-slate-100 rounded"></div><div className="h-8 w-1/3 bg-amber-100 rounded"></div></div>
+                                <div className="h-32 flex-1 bg-white border border-slate-100 rounded-xl shadow-sm p-6 flex flex-col justify-between"><div className="h-4 w-1/2 bg-slate-100 rounded"></div><div className="h-8 w-1/3 bg-primary-100 rounded"></div></div>
+                                <div className="h-32 flex-1 bg-white border border-slate-100 rounded-xl shadow-sm p-6 flex flex-col justify-between"><div className="h-4 w-1/2 bg-slate-100 rounded"></div><div className="h-8 w-1/3 bg-emerald-100 rounded"></div></div>
+                                <div className="h-32 flex-1 bg-white border border-slate-100 rounded-xl shadow-sm p-6 flex flex-col justify-between"><div className="h-4 w-1/2 bg-slate-100 rounded"></div><div className="h-8 w-1/3 bg-amber-100 rounded"></div></div>
                             </div>
                             <div className="h-64 bg-white border border-slate-100 rounded-xl shadow-sm p-6"><div className="h-full w-full bg-slate-50 rounded border border-slate-100 flex items-end px-4 gap-4 pt-12 pb-4"> {[...Array(12)].map((_, i) => <div key={i} className="w-full bg-primary-100 rounded-t-md" style={{height: `${Math.random() * 80 + 20}%`}}></div>)}</div></div>
                        </div>
@@ -96,4 +107,3 @@ export default function Landing() {
     </div>
   )
 }
-
