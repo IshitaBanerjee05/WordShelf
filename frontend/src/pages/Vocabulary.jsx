@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Search, Sparkles, Volume2, BookmarkPlus,
-  X, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Languages, Trash2
+  X, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Languages, Trash2,
+  SendHorizonal, Star, RotateCcw
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -370,6 +371,265 @@ function ManualAddPanel({ onClose, onAddWord }) {
     </motion.div>
   );
 }
+// ─── AiExtractPanel ────────────────────────────────────────────────────────────
+
+const DIFFICULTY_STYLES = {
+  rare:     { badge: 'bg-red-100 text-red-700 border-red-200',     dot: 'bg-red-400',     label: '🔴 Rare' },
+  uncommon: { badge: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-400', label: '🟡 Uncommon' },
+  advanced: { badge: 'bg-blue-100 text-blue-700 border-blue-200',  dot: 'bg-blue-400',    label: '🔵 Advanced' },
+  common:   { badge: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-300', label: '⚪ Common' },
+};
+
+function AiExtractPanel({ onClose, onAddWord }) {
+  const [text, setText]           = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState(null);
+  const [words, setWords]         = useState([]);   // ExtractedWord[]
+  const [added, setAdded]         = useState({});   // { word: bool }
+  const [saving, setSaving]       = useState({});
+
+  const handleExtract = async () => {
+    const t = text.trim();
+    if (!t) return;
+    setLoading(true); setError(null); setWords([]); setAdded({}); setSaving({});
+    try {
+      const res = await api.post('/vocabulary/extract-from-text', { text: t, max_words: 12 });
+      if (res.data.length === 0) {
+        setError('No hard words found in this passage. Try a more literary or academic text.');
+      } else {
+        setWords(res.data);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Extraction failed. Is the backend running?');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdd = async (w) => {
+    if (added[w.word] || saving[w.word]) return;
+    setSaving(prev => ({ ...prev, [w.word]: true }));
+    try {
+      const payload = {
+        word: w.word, definition: w.definition || '', language: 'en',
+        context_sentence: w.example || null, learning_status: 'new',
+      };
+      const res = await api.post('/vocabulary/', payload);
+      onAddWord({
+        id: res.data.id, backendId: res.data.id,
+        word: w.word.charAt(0).toUpperCase() + w.word.slice(1),
+        pos: w.pos, meaning: w.definition || '',
+        examples: w.example ? [w.example] : [],
+        synonyms: [], antonyms: [], phonetic: '', audioUrl: null,
+        source: 'AI Extract', addedAt: 'Just now', strength: 0,
+        learningStatus: 'new',
+      });
+      setAdded(prev => ({ ...prev, [w.word]: true }));
+    } catch (err) {
+      console.error('Failed to save word:', err);
+    } finally {
+      setSaving(prev => ({ ...prev, [w.word]: false }));
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-lg font-bold text-emerald-900 flex items-center gap-2">
+          <Sparkles className="text-emerald-500 w-5 h-5" /> Smart Vocabulary Extractor
+          <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-normal ml-1">Basic Mode</span>
+        </h3>
+        <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X className="w-4 h-4" /></button>
+      </div>
+
+      <div className="flex gap-3 mb-4">
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          className="flex-1 text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-4 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-shadow min-h-[110px] resize-none shadow-inner text-sm"
+          placeholder="Paste a passage from a book, article, or essay. The NLP engine will score each word by rarity and return the hardest ones…"
+        />
+      </div>
+
+      <AnimatePresence>
+        {error && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm mb-4">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex justify-end gap-3 mb-5">
+        <button onClick={onClose} className="px-5 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">Cancel</button>
+        <button onClick={handleExtract} disabled={loading || !text.trim()}
+          className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-md shadow-emerald-600/20 hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-2 transition-all">
+          {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Extracting…</> : <><Sparkles className="w-4 h-4" />Extract Words</>}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {words.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+              {words.length} words found — sorted hardest first
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {words.map((w) => {
+                const style = DIFFICULTY_STYLES[w.difficulty_label] ?? DIFFICULTY_STYLES.advanced;
+                const isAdded = added[w.word];
+                const isSaving = saving[w.word];
+                return (
+                  <motion.div key={w.word} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                    className={`rounded-xl border p-3 flex flex-col gap-2 transition-all ${isAdded ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200 hover:border-emerald-200 hover:shadow-sm'}`}>
+                    <div className="flex items-start justify-between gap-1">
+                      <span className="font-bold text-slate-800 capitalize text-sm">{w.word}</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${style.badge}`}>
+                        {w.difficulty_label}
+                      </span>
+                    </div>
+                    {w.definition && (
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{w.definition}</p>
+                    )}
+                    <div className="flex items-center justify-between mt-auto pt-1">
+                      <span className="text-[10px] text-slate-400 italic">{w.pos}</span>
+                      <button onClick={() => handleAdd(w)} disabled={isAdded || isSaving}
+                        className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${isAdded ? 'bg-emerald-100 text-emerald-700 cursor-default' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>
+                        {isSaving ? <Loader2 className="w-3 h-3 animate-spin" />
+                         : isAdded ? <><CheckCircle2 className="w-3 h-3" />Added</>
+                         : <><Plus className="w-3 h-3" />Add</>}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── PracticeSection ───────────────────────────────────────────────────────────
+
+function PracticeSection({ word }) {
+  const [sentence, setSentence]   = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [result, setResult]       = useState(null);
+  const [error, setError]         = useState(null);
+
+  // Reset when the selected word changes
+  React.useEffect(() => { setSentence(''); setResult(null); setError(null); }, [word?.id]);
+
+  const handleEvaluate = async () => {
+    if (!sentence.trim() || !word?.backendId) return;
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const res = await api.post('/vocabulary/evaluate-usage', {
+        word_id: word.backendId,
+        sentence: sentence.trim(),
+      });
+      setResult(res.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Evaluation failed. Is the backend running?');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const scoreColor = (s) => s >= 8 ? 'text-emerald-600' : s >= 5 ? 'text-amber-600' : 'text-red-600';
+  const scoreBg    = (s) => s >= 8 ? 'bg-emerald-50 border-emerald-200' : s >= 5 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
+
+  return (
+    <section className="pt-6 border-t border-slate-100">
+      <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-amber-500" />
+        Practice Sentence
+      </h3>
+      <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-2xl border border-amber-100/80">
+        <p className="text-sm text-amber-800 mb-3 font-medium">
+          Write a sentence using{' '}
+          <strong className="font-bold text-amber-900 bg-amber-200/50 px-1 rounded">{word.word}</strong>.
+          {' '}Our NLP engine will grade your usage and update your review schedule.
+        </p>
+        <textarea
+          value={sentence}
+          onChange={e => setSentence(e.target.value)}
+          className="w-full bg-white border border-amber-200 rounded-xl p-3 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-shadow text-sm min-h-[80px] resize-none"
+          placeholder={`E.g., "The ${word.word.toLowerCase()} beauty of the moment left us speechless."`}
+        />
+        <div className="mt-3 flex items-center justify-between">
+          {result && (
+            <button onClick={() => { setResult(null); setSentence(''); }}
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600">
+              <RotateCcw className="w-3 h-3" /> Try again
+            </button>
+          )}
+          <div className="ml-auto">
+            <button onClick={handleEvaluate} disabled={loading || !sentence.trim() || !word?.backendId}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white text-sm font-bold rounded-lg shadow-sm transition-all">
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Evaluating…</> : <><SendHorizonal className="w-4 h-4" />Evaluate Usage</>}
+            </button>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {error && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="mt-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {result && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className={`mt-4 p-4 rounded-xl border ${scoreBg(result.score)}`}>
+              {/* Score row */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`text-2xl font-extrabold ${scoreColor(result.score)}`}>
+                  {result.score}<span className="text-base font-normal opacity-60">/10</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${result.correct_usage ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                    {result.correct_usage ? '✓ Correct usage' : '✗ Incorrect usage'}
+                  </span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${result.grammar_ok ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                    {result.grammar_ok ? '✓ Grammar OK' : '✗ Grammar issue'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Feedback */}
+              <p className="text-sm text-slate-700 leading-relaxed mb-3">{result.feedback}</p>
+
+              {/* Suggestion */}
+              {result.suggestion && (
+                <div className="bg-white/70 rounded-lg p-3 border border-amber-200/70 text-xs text-slate-600 italic">
+                  <span className="font-bold not-italic text-amber-700 block mb-1">💡 Suggestion</span>
+                  {result.suggestion}
+                </div>
+              )}
+
+              {/* SM-2 note */}
+              <p className="text-[10px] text-slate-400 mt-3 flex items-center gap-1">
+                <Star className="w-3 h-3" />
+                {result.score >= 7
+                  ? 'Great work! Your next review has been pushed further out.'
+                  : result.score >= 4
+                  ? 'Keep practising. Your next review is coming up soon.'
+                  : 'This word has been reset for an earlier review to help you improve.'}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </section>
+  );
+}
+
 // ─── VocabListItem ─────────────────────────────────────────────────────────────
 
 function VocabListItem({ item, isSelected, onSelect, onDelete }) {
@@ -551,25 +811,14 @@ export default function Vocabulary() {
       <AnimatePresence>
         {isAiOpen && (
           <motion.div
+            key="ai-panel"
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
             animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 overflow-hidden flex-shrink-0 relative"
+            className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden flex-shrink-0 relative"
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-bl-full -z-10 opacity-50" />
-            <h3 className="text-lg font-bold text-emerald-900 mb-4 flex items-center gap-2">
-              <Sparkles className="text-emerald-500 w-5 h-5" /> Smart Vocabulary Extractor
-            </h3>
-            <div className="flex flex-col gap-4">
-              <textarea
-                className="w-full text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-4 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-shadow min-h-[120px] resize-y shadow-inner"
-                placeholder="Paste an excerpt from an article or book chapter here. WordShelf NLP will automatically filter out common words and extract valuable vocabulary..."
-              />
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setIsAiOpen(false)} className="px-5 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">Cancel</button>
-                <button className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition-colors">Extract Words</button>
-              </div>
-            </div>
+            <AiExtractPanel onClose={() => setIsAiOpen(false)} onAddWord={handleAddWord} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -762,29 +1011,7 @@ export default function Vocabulary() {
                 )}
 
                 {/* AI Context Practice */}
-                <section className="pt-6 border-t border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    AI Context Practice
-                  </h3>
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-2xl border border-amber-100/50">
-                    <p className="text-sm text-amber-800 mb-3 font-medium">
-                      Write a sentence using exactly{' '}
-                      <strong className="font-bold text-amber-900 bg-amber-200/50 px-1 rounded">
-                        {selectedWord.word}
-                      </strong>. Our NLP will grade your usage.
-                    </p>
-                    <textarea
-                      className="w-full bg-white border border-amber-200 rounded-xl p-3 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-shadow text-sm min-h-[80px]"
-                      placeholder={`E.g., The moment was ${selectedWord.word.toLowerCase()}…`}
-                    />
-                    <div className="mt-3 flex justify-end">
-                      <button className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors">
-                        Evaluate Usage
-                      </button>
-                    </div>
-                  </div>
-                </section>
+                <PracticeSection word={selectedWord} />
               </div>
             </div>
           ) : (
