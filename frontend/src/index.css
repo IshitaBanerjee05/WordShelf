@@ -21,3 +21,78 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
+
+/* ── Dark mode overrides ────────────────────────────────────────────────────── */
+/* Applied when <html class="dark"> is set by the Profile toggle               */
+
+.dark body {
+  background-color: #0f1117;
+  color: #e2e8f0;
+}
+
+/* Sticky page header (uses bg-white/80 opacity modifier — override separately) */
+.dark header {
+  background-color: rgba(26, 31, 46, 0.85) !important;
+  border-color: #2d3748 !important;
+}
+
+/* Page title in header */
+.dark header h1 {
+  color: #f1f5f9 !important;
+}
+
+/* Page-level backgrounds */
+.dark .bg-gray-50 { background-color: #0f1117 !important; }
+.dark .bg-slate-50 { background-color: #1e2433 !important; }
+
+/* White cards → dark surface */
+.dark .bg-white {
+  background-color: #1a1f2e !important;
+  color: #e2e8f0;
+}
+
+/* Opacity-modified backgrounds (bg-white/80, bg-slate-50/50, etc.)
+   Tailwind v4 generates separate classes for these — target by property value */
+.dark [class*="bg-white/"],
+.dark [class*="bg-slate-50/"],
+.dark [class*="bg-gray-50/"] {
+  background-color: #1a1f2e !important;
+}
+
+/* Borders */
+.dark .border-slate-100 { border-color: #2d3748 !important; }
+.dark .border-slate-200 { border-color: #374151 !important; }
+.dark .border-gray-200  { border-color: #374151 !important; }
+
+/* Inputs / textareas / selects */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #1e2433 !important;
+  color: #e2e8f0 !important;
+  border-color: #374151 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Text */
+.dark .text-slate-900 { color: #f1f5f9 !important; }
+.dark .text-slate-800 { color: #e2e8f0 !important; }
+.dark .text-slate-700 { color: #cbd5e1 !important; }
+.dark .text-slate-600 { color: #94a3b8 !important; }
+.dark .text-slate-500 { color: #64748b !important; }
+.dark .text-gray-900  { color: #f1f5f9 !important; }
+.dark .text-gray-700  { color: #cbd5e1 !important; }
+
+/* Generic hover targets in dark mode (no escaped Tailwind selectors) */
+.dark a:hover,
+.dark button:hover {
+  opacity: 0.9;
+}
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-track { background: #1a1f2e; }
+.dark ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }

@@ -5,6 +5,19 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
+// Watches the 'dark' class on <html> and re-renders when it changes
+function useDark() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
+  useEffect(() => {
+    const observer = new MutationObserver(() =>
+      setDark(document.documentElement.classList.contains('dark'))
+    );
+    observer.observe(document.documentElement, { attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+  return dark;
+}
+
 // ── Heatmap helpers ───────────────────────────────────────────────────────────
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAY_LABELS = ['','Mon','','Wed','','Fri',''];
@@ -111,6 +124,7 @@ function StatCard({ title, value, icon: Icon, colorClass, loading }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const dark = useDark();
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
   const [stats, setStats]               = useState(null);
@@ -217,10 +231,10 @@ export default function Dashboard() {
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={dark ? '#334155' : '#e2e8f0'} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: dark ? '#94a3b8' : '#64748b', fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: dark ? '#94a3b8' : '#64748b', fontSize: 12 }} allowDecimals={false} />
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: dark ? '#1e293b' : '#fff', color: dark ? '#e2e8f0' : '#1e293b' }} />
                   <Area type="monotone" dataKey="words" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorWords)" />
                 </AreaChart>
               </ResponsiveContainer>
