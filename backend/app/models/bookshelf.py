@@ -20,7 +20,8 @@ class Book(Base):
     current_page = Column(Integer, default=0)
     status = Column(Enum(BookStatus), default=BookStatus.to_read)
     language = Column(String, default="en")
-    
+    cover_url = Column(String, nullable=True)  # Persisted Open Library cover URL
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

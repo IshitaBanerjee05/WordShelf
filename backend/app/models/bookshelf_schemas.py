@@ -10,6 +10,7 @@ class BookBase(BaseModel):
     current_page: Optional[int] = 0
     status: Optional[BookStatus] = BookStatus.to_read
     language: Optional[str] = "en"
+    cover_url: Optional[str] = None
 
 class BookCreate(BookBase):
     pass
@@ -21,6 +22,7 @@ class BookUpdate(BaseModel):
     current_page: Optional[int] = None
     status: Optional[BookStatus] = None
     language: Optional[str] = None
+    cover_url: Optional[str] = None
 
 class BookResponse(BookBase):
     id: int

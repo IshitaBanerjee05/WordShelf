@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Search, Sparkles, Volume2, BookmarkPlus,
-  X, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Languages
+  X, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Languages, Trash2
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -370,6 +370,47 @@ function ManualAddPanel({ onClose, onAddWord }) {
     </motion.div>
   );
 }
+// ─── VocabListItem ─────────────────────────────────────────────────────────────
+
+function VocabListItem({ item, isSelected, onSelect, onDelete }) {
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <div className="relative group">
+      <button
+        onClick={() => { onSelect(); setConfirming(false); }}
+        className={`w-full text-left p-4 rounded-xl transition-all border pr-16 ${
+          isSelected ? 'bg-primary-50 border-primary-200 shadow-sm'
+                     : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
+        }`}
+      >
+        <div className="flex justify-between items-start mb-1">
+          <span className={`font-bold ${isSelected ? 'text-primary-700' : 'text-slate-800'}`}>{item.word}</span>
+          <div className={`w-2 h-2 rounded-full mt-1.5 ${item.strength > 80 ? 'bg-emerald-500' : item.strength > 50 ? 'bg-amber-500' : 'bg-red-400'}`} />
+        </div>
+        <div className="flex items-center text-xs text-slate-500 gap-2">
+          {item.pos && <span className="italic">{item.pos}</span>}
+          {item.pos && <span className="w-1 h-1 rounded-full bg-slate-300" />}
+          <span className="truncate">{item.meaning}</span>
+        </div>
+      </button>
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        {confirming ? (
+          <>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+              className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded font-semibold hover:bg-red-600">Yes</button>
+            <button onClick={(e) => { e.stopPropagation(); setConfirming(false); }}
+              className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-semibold hover:bg-slate-300">No</button>
+          </>
+        ) : (
+          <button onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
+            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all" title="Delete word">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── Main Vocabulary page ──────────────────────────────────────────────────────
 
@@ -454,6 +495,16 @@ export default function Vocabulary() {
       return [entry, ...prev];
     });
     setSelectedWord(entry);
+  };
+
+  const handleDeleteWord = async (wordId) => {
+    try {
+      await api.delete(`/vocabulary/${wordId}`);
+      setVocabulary(prev => prev.filter(w => w.id !== wordId));
+      if (selectedWord?.id === wordId) setSelectedWord(null);
+    } catch (err) {
+      console.error('Failed to delete word:', err);
+    }
   };
 
   const filtered = vocabulary.filter(w =>
@@ -570,31 +621,13 @@ export default function Vocabulary() {
               </div>
             ) : (
               filtered.map((item) => (
-                <button
+                <VocabListItem
                   key={item.id}
-                  onClick={() => setSelectedWord(item)}
-                  className={`w-full text-left p-4 rounded-xl transition-all border ${
-                    selectedWord?.id === item.id
-                      ? 'bg-primary-50 border-primary-200 shadow-sm'
-                      : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className={`font-bold ${selectedWord?.id === item.id ? 'text-primary-700' : 'text-slate-800'}`}>
-                      {item.word}
-                    </span>
-                    <div className={`w-2 h-2 rounded-full mt-1.5 ${
-                      item.strength > 80 ? 'bg-emerald-500'
-                      : item.strength > 50 ? 'bg-amber-500'
-                      : 'bg-red-400'
-                    }`} />
-                  </div>
-                  <div className="flex items-center text-xs text-slate-500 gap-2">
-                    {item.pos && <span className="italic">{item.pos}</span>}
-                    {item.pos && <span className="w-1 h-1 rounded-full bg-slate-300" />}
-                    <span className="truncate">{item.meaning}</span>
-                  </div>
-                </button>
+                  item={item}
+                  isSelected={selectedWord?.id === item.id}
+                  onSelect={() => setSelectedWord(item)}
+                  onDelete={handleDeleteWord}
+                />
               ))
             )}
           </div>
