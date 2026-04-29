@@ -818,10 +818,32 @@ export default function Vocabulary() {
   const [loadingVocab, setLoadingVocab] = useState(true);
 
   // ── Translation state ──
-  const [transLang, setTransLang]       = useState('hi');   // default: Hindi
-  const [transText, setTransText]       = useState(null);   // translated string
+  const [transLang, setTransLang]       = useState('hi');
+  const [transText, setTransText]       = useState(null);
   const [transLoading, setTransLoading] = useState(false);
   const [transError, setTransError]     = useState(null);
+
+  // ── Full dictionary detail (Free Dictionary API) ──
+  const [dictData, setDictData]         = useState(null);
+  const [dictLoading, setDictLoading]   = useState(false);
+
+  useEffect(() => {
+    if (!selectedWord) { setDictData(null); return; }
+    let cancelled = false;
+    const go = async () => {
+      setDictLoading(true);
+      setDictData(null);
+      try {
+        const r = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(selectedWord.word.toLowerCase())}`);
+        if (!r.ok || cancelled) return;
+        const json = await r.json();
+        if (!cancelled && Array.isArray(json) && json[0]) setDictData(json[0]);
+      } catch { /* silent */ } finally { if (!cancelled) setDictLoading(false); }
+    };
+    go();
+    return () => { cancelled = true; };
+  }, [selectedWord?.id]);
+
 
   // Fetch vocabulary from backend on mount
   useEffect(() => {
@@ -1053,10 +1075,63 @@ export default function Vocabulary() {
               </div>
 
               <div className="space-y-8">
-                {/* Meaning */}
+                {/* ── Meanings (Full Dictionary Detail) ── */}
                 <section>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Meaning</h3>
-                  <p className="text-lg text-slate-800 leading-relaxed font-medium">{selectedWord.meaning}</p>
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Meanings</h3>
+
+                  {dictLoading && (
+                    <div className="flex items-center gap-2 text-slate-400 text-sm py-1">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Looking up dictionary…
+                    </div>
+                  )}
+
+                  {!dictLoading && dictData?.meanings?.length > 0 ? (
+                    <div className="space-y-6">
+                      {dictData.meanings.map((m, mi) => (
+                        <div key={mi}>
+                          {/* Part of speech pill */}
+                          <span className="inline-block text-xs font-bold uppercase tracking-widest italic text-primary-600 bg-primary-50 border border-primary-100 px-2.5 py-0.5 rounded-md mb-3">
+                            {m.partOfSpeech}
+                          </span>
+                          {/* Numbered definitions */}
+                          <ol className="space-y-3 list-none">
+                            {m.definitions.slice(0, 4).map((d, di) => (
+                              <li key={di} className="flex gap-3">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                                  {di + 1}
+                                </span>
+                                <div>
+                                  <p className="text-slate-800 leading-relaxed font-medium text-sm">{d.definition}</p>
+                                  {d.example && (
+                                    <p className="text-slate-500 italic text-xs mt-1.5 border-l-2 border-primary-200 pl-2 font-serif">
+                                      "{d.example}"
+                                    </p>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ol>
+                          {/* Per-meaning synonyms */}
+                          {m.synonyms?.length > 0 && (
+                            <div className="mt-2.5 flex flex-wrap gap-1.5">
+                              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide self-center">syn:</span>
+                              {m.synonyms.slice(0, 6).map(s => (
+                                <span key={s} className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full border border-slate-200">{s}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : !dictLoading && (
+                    /* Fallback: stored definition from DB */
+                    <p className="text-base text-slate-800 leading-relaxed font-medium">
+                      {selectedWord.meaning
+                        ? selectedWord.meaning
+                        : <span className="text-slate-400 italic text-sm">No definition available.</span>
+                      }
+                    </p>
+                  )}
                 </section>
 
                 {/* Translation */}
