@@ -374,19 +374,176 @@ function ManualAddPanel({ onClose, onAddWord }) {
 // ─── AiExtractPanel ────────────────────────────────────────────────────────────
 
 const DIFFICULTY_STYLES = {
-  rare:     { badge: 'bg-red-100 text-red-700 border-red-200',     dot: 'bg-red-400',     label: '🔴 Rare' },
-  uncommon: { badge: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-400', label: '🟡 Uncommon' },
-  advanced: { badge: 'bg-blue-100 text-blue-700 border-blue-200',  dot: 'bg-blue-400',    label: '🔵 Advanced' },
-  common:   { badge: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-300', label: '⚪ Common' },
+  rare:     { badge: 'bg-red-100 text-red-700 border-red-200',      bar: 'bg-red-400' },
+  uncommon: { badge: 'bg-amber-100 text-amber-700 border-amber-200', bar: 'bg-amber-400' },
+  advanced: { badge: 'bg-blue-100 text-blue-700 border-blue-200',   bar: 'bg-blue-400' },
+  common:   { badge: 'bg-slate-100 text-slate-500 border-slate-200', bar: 'bg-slate-300' },
 };
 
+const FREE_DICT = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+
+async function fetchDict(word) {
+  try {
+    const r = await fetch(`${FREE_DICT}${encodeURIComponent(word)}`);
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (!Array.isArray(data) || !data[0]) return null;
+    const entry = data[0];
+    const meaning = entry.meanings?.[0];
+    const def = meaning?.definitions?.[0];
+    return {
+      definition: def?.definition || '',
+      example: def?.example || '',
+      partOfSpeech: meaning?.partOfSpeech || '',
+      phonetic: entry.phonetic || entry.phonetics?.find(p => p.text)?.text || '',
+      synonyms: meaning?.synonyms?.slice(0, 5) || [],
+      antonyms: meaning?.antonyms?.slice(0, 5) || [],
+      audioUrl: entry.phonetics?.find(p => p.audio)?.audio || null,
+    };
+  } catch { return null; }
+}
+
+function WordCard({ w, isAdded, isSaving, onAdd }) {
+  const [expanded, setExpanded] = useState(false);
+  const [dict, setDict]         = useState(null);  // fresh dict data
+  const [dictLoading, setDictLoading] = useState(false);
+  const style = DIFFICULTY_STYLES[w.difficulty_label] ?? DIFFICULTY_STYLES.advanced;
+
+  const toggleExpand = async (e) => {
+    e.stopPropagation();
+    if (!expanded && !dict) {
+      setDictLoading(true);
+      const d = await fetchDict(w.word);
+      setDict(d);
+      setDictLoading(false);
+    }
+    setExpanded(v => !v);
+  };
+
+  // Merged data: prefer fresh dict lookup, fall back to extractor data
+  const definition = dict?.definition || w.definition || '';
+  const example    = dict?.example    || w.example    || '';
+  const pos        = dict?.partOfSpeech || w.pos || '';
+  const phonetic   = dict?.phonetic   || '';
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`rounded-xl border overflow-hidden transition-all cursor-pointer ${
+        isAdded
+          ? 'bg-emerald-50 border-emerald-200'
+          : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-md'
+      }`}
+    >
+      {/* ── Collapsed header (always visible) ── */}
+      <div
+        className="p-3 flex items-center gap-2"
+        onClick={toggleExpand}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-slate-800 capitalize text-sm">{w.word}</span>
+            {phonetic && <span className="text-[10px] text-slate-400">{phonetic}</span>}
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${style.badge}`}>
+              {w.difficulty_label}
+            </span>
+          </div>
+          {!expanded && definition && (
+            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1 leading-relaxed">{definition}</p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Quick add button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onAdd({ ...w, definition, example, pos, phonetic, synonyms: dict?.synonyms || [], antonyms: dict?.antonyms || [], audioUrl: dict?.audioUrl || null }); }}
+            disabled={isAdded || isSaving}
+            className={`text-[11px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition-all ${
+              isAdded ? 'bg-emerald-100 text-emerald-700 cursor-default' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+            }`}
+          >
+            {isSaving ? <Loader2 className="w-3 h-3 animate-spin" />
+             : isAdded ? <><CheckCircle2 className="w-3 h-3" />Added</>
+             : <><Plus className="w-3 h-3" />Add</>}
+          </button>
+          {/* Expand chevron */}
+          {expanded ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+        </div>
+      </div>
+
+      {/* ── Expanded body ── */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-4 border-t border-slate-100 pt-3 space-y-3">
+              {dictLoading ? (
+                <div className="flex items-center gap-2 text-slate-400 text-xs py-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Looking up dictionary…
+                </div>
+              ) : (
+                <>
+                  {/* POS + difficulty */}
+                  <div className="flex items-center gap-2">
+                    {pos && <span className="text-[10px] italic text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-full">{pos}</span>}
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${Math.round(w.difficulty_score * 100)}%` }} />
+                      </div>
+                      <span className="text-[10px] text-slate-400">{Math.round(w.difficulty_score * 100)}% hard</span>
+                    </div>
+                  </div>
+
+                  {/* Definition */}
+                  {definition ? (
+                    <p className="text-xs text-slate-700 leading-relaxed">{definition}</p>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No definition found in dictionary.</p>
+                  )}
+
+                  {/* Example */}
+                  {example && (
+                    <p className="text-[11px] text-slate-500 italic border-l-2 border-emerald-300 pl-2 leading-relaxed">
+                      "{example}"
+                    </p>
+                  )}
+
+                  {/* Add to Ledger button (full width in expanded) */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onAdd({ ...w, definition, example, pos, phonetic, synonyms: dict?.synonyms || [], antonyms: dict?.antonyms || [], audioUrl: dict?.audioUrl || null }); }}
+                    disabled={isAdded || isSaving}
+                    className={`w-full mt-1 py-2 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
+                      isAdded ? 'bg-emerald-100 text-emerald-700 cursor-default' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                    }`}
+                  >
+                    {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</>
+                     : isAdded ? <><CheckCircle2 className="w-4 h-4" />Added to Ledger</>
+                     : <><BookmarkPlus className="w-4 h-4" />Add to Ledger</>}
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 function AiExtractPanel({ onClose, onAddWord }) {
-  const [text, setText]           = useState('');
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState(null);
-  const [words, setWords]         = useState([]);   // ExtractedWord[]
-  const [added, setAdded]         = useState({});   // { word: bool }
-  const [saving, setSaving]       = useState({});
+  const [text, setText]     = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState(null);
+  const [words, setWords]   = useState([]);
+  const [added, setAdded]   = useState({});
+  const [saving, setSaving] = useState({});
 
   const handleExtract = async () => {
     const t = text.trim();
@@ -394,16 +551,11 @@ function AiExtractPanel({ onClose, onAddWord }) {
     setLoading(true); setError(null); setWords([]); setAdded({}); setSaving({});
     try {
       const res = await api.post('/vocabulary/extract-from-text', { text: t, max_words: 12 });
-      if (res.data.length === 0) {
-        setError('No hard words found in this passage. Try a more literary or academic text.');
-      } else {
-        setWords(res.data);
-      }
+      if (res.data.length === 0) setError('No hard words found. Try a more literary or academic text.');
+      else setWords(res.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Extraction failed. Is the backend running?');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleAdd = async (w) => {
@@ -411,8 +563,11 @@ function AiExtractPanel({ onClose, onAddWord }) {
     setSaving(prev => ({ ...prev, [w.word]: true }));
     try {
       const payload = {
-        word: w.word, definition: w.definition || '', language: 'en',
-        context_sentence: w.example || null, learning_status: 'new',
+        word: w.word,
+        definition: w.definition || '',
+        language: 'en',
+        context_sentence: w.example || null,
+        learning_status: 'new',
       };
       const res = await api.post('/vocabulary/', payload);
       onAddWord({
@@ -420,7 +575,8 @@ function AiExtractPanel({ onClose, onAddWord }) {
         word: w.word.charAt(0).toUpperCase() + w.word.slice(1),
         pos: w.pos, meaning: w.definition || '',
         examples: w.example ? [w.example] : [],
-        synonyms: [], antonyms: [], phonetic: '', audioUrl: null,
+        synonyms: w.synonyms || [], antonyms: w.antonyms || [],
+        phonetic: w.phonetic || '', audioUrl: w.audioUrl || null,
         source: 'AI Extract', addedAt: 'Just now', strength: 0,
         learningStatus: 'new',
       });
@@ -437,24 +593,22 @@ function AiExtractPanel({ onClose, onAddWord }) {
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-lg font-bold text-emerald-900 flex items-center gap-2">
           <Sparkles className="text-emerald-500 w-5 h-5" /> Smart Vocabulary Extractor
-          <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-normal ml-1">Basic Mode</span>
+          <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-normal ml-1">NLP Mode</span>
         </h3>
         <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"><X className="w-4 h-4" /></button>
       </div>
 
-      <div className="flex gap-3 mb-4">
-        <textarea
-          value={text}
-          onChange={e => setText(e.target.value)}
-          className="flex-1 text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-4 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-shadow min-h-[110px] resize-none shadow-inner text-sm"
-          placeholder="Paste a passage from a book, article, or essay. The NLP engine will score each word by rarity and return the hardest ones…"
-        />
-      </div>
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        className="w-full text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-4 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 min-h-[110px] resize-none text-sm mb-3"
+        placeholder="Paste a passage from a book, article, or essay. The NLP engine scores each word by rarity and returns the hardest ones…"
+      />
 
       <AnimatePresence>
         {error && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm mb-4">
+            className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm mb-3">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
           </motion.div>
         )}
@@ -463,7 +617,7 @@ function AiExtractPanel({ onClose, onAddWord }) {
       <div className="flex justify-end gap-3 mb-5">
         <button onClick={onClose} className="px-5 py-2 text-sm font-medium text-slate-500 hover:text-slate-800">Cancel</button>
         <button onClick={handleExtract} disabled={loading || !text.trim()}
-          className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-md shadow-emerald-600/20 hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-2 transition-all">
+          className="px-6 py-2 bg-emerald-600 text-white rounded-xl font-semibold shadow-md shadow-emerald-600/20 hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-2">
           {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Extracting…</> : <><Sparkles className="w-4 h-4" />Extract Words</>}
         </button>
       </div>
@@ -472,37 +626,18 @@ function AiExtractPanel({ onClose, onAddWord }) {
         {words.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              {words.length} words found — sorted hardest first
+              {words.length} words found — click any card to expand · sorted hardest first
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {words.map((w) => {
-                const style = DIFFICULTY_STYLES[w.difficulty_label] ?? DIFFICULTY_STYLES.advanced;
-                const isAdded = added[w.word];
-                const isSaving = saving[w.word];
-                return (
-                  <motion.div key={w.word} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                    className={`rounded-xl border p-3 flex flex-col gap-2 transition-all ${isAdded ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200 hover:border-emerald-200 hover:shadow-sm'}`}>
-                    <div className="flex items-start justify-between gap-1">
-                      <span className="font-bold text-slate-800 capitalize text-sm">{w.word}</span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${style.badge}`}>
-                        {w.difficulty_label}
-                      </span>
-                    </div>
-                    {w.definition && (
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{w.definition}</p>
-                    )}
-                    <div className="flex items-center justify-between mt-auto pt-1">
-                      <span className="text-[10px] text-slate-400 italic">{w.pos}</span>
-                      <button onClick={() => handleAdd(w)} disabled={isAdded || isSaving}
-                        className={`text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${isAdded ? 'bg-emerald-100 text-emerald-700 cursor-default' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>
-                        {isSaving ? <Loader2 className="w-3 h-3 animate-spin" />
-                         : isAdded ? <><CheckCircle2 className="w-3 h-3" />Added</>
-                         : <><Plus className="w-3 h-3" />Add</>}
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {words.map(w => (
+                <WordCard
+                  key={w.word}
+                  w={w}
+                  isAdded={!!added[w.word]}
+                  isSaving={!!saving[w.word]}
+                  onAdd={handleAdd}
+                />
+              ))}
             </div>
           </motion.div>
         )}
