@@ -196,3 +196,89 @@ def get_activity(
         cursor += timedelta(days=1)
 
     return results
+
+
+# ── Proficiency summary (powers the export card) ──────────────────────────────
+
+class ProficiencySummary(BaseModel):
+    username: str
+    member_since: str          # "YYYY-MM-DD"
+    streak: int
+    reading_intelligence_score: int
+    total_words: int
+    mastered: int
+    learning: int
+    new_words: int
+    total_books: int
+    books_completed: int
+    total_pages_read: int
+    generated_at: str          # "April 30, 2026"
+
+
+@router.get("/proficiency-summary", response_model=ProficiencySummary)
+def get_proficiency_summary(
+    db: Session = Depends(get_db),
+    current_user: user.User = Depends(get_current_active_user),
+):
+    """All stats needed to render the exportable proficiency card — one round trip."""
+
+    # ── Vocabulary stats ──
+    vocab_items = db.query(vocabulary.Vocabulary).filter(
+        vocabulary.Vocabulary.user_id == current_user.id
+    ).all()
+    total_words      = len(vocab_items)
+    mastered_count   = sum(1 for v in vocab_items if v.learning_status == vocabulary.LearningStatus.mastered)
+    learning_count   = sum(1 for v in vocab_items if v.learning_status == vocabulary.LearningStatus.learning)
+    new_count        = sum(1 for v in vocab_items if v.learning_status == vocabulary.LearningStatus.new)
+
+    # ── Bookshelf stats ──
+    books            = db.query(bookshelf.Book).filter(bookshelf.Book.user_id == current_user.id).all()
+    total_books      = len(books)
+    books_completed  = sum(1 for b in books if b.status == bookshelf.BookStatus.completed)
+    total_pages_read = sum(b.current_page for b in books if b.current_page)
+
+    # ── Reading Intelligence Score (same formula as /analytics) ──
+    score = (total_words * 2) + (mastered_count * 5) + (total_books * 10) + (books_completed * 25) + int(total_pages_read * 0.05)
+
+    # ── Streak ──
+    today = datetime.now(timezone.utc).date()
+    streak_rows = (
+        db.query(
+            func.strftime("%Y-%m-%d", vocabulary.Vocabulary.created_at).label("day")
+        )
+        .filter(vocabulary.Vocabulary.user_id == current_user.id)
+        .group_by("day")
+        .order_by(func.strftime("%Y-%m-%d", vocabulary.Vocabulary.created_at).desc())
+        .all()
+    )
+    active_dates = {date_type.fromisoformat(r.day) for r in streak_rows}
+    streak = 0
+    cursor = today
+    if cursor not in active_dates:
+        cursor -= timedelta(days=1)
+    while cursor in active_dates:
+        streak += 1
+        cursor -= timedelta(days=1)
+
+    # ── Member since ──
+    member_since = (
+        current_user.created_at.strftime("%Y-%m-%d")
+        if hasattr(current_user, "created_at") and current_user.created_at
+        else "Unknown"
+    )
+
+    return ProficiencySummary(
+        username=current_user.username,
+        member_since=member_since,
+        streak=streak,
+        reading_intelligence_score=score,
+        total_words=total_words,
+        mastered=mastered_count,
+        learning=learning_count,
+        new_words=new_count,
+        total_books=total_books,
+        books_completed=books_completed,
+        total_pages_read=total_pages_read,
+        generated_at=today.strftime("%B %d, %Y"),
+    )
+
