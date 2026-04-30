@@ -107,24 +107,33 @@ export default function ProficiencyCard({ data, theme = 'dark', cardRef }) {
     >
 
 
-      {/* ── TOP: brand + date ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-        <span style={{ fontSize: 22, fontWeight: 800, color: textMain, letterSpacing: '-0.02em' }}>📚 WordShelf</span>
-        <span style={{ fontSize: 13, color: textMuted, fontWeight: 500 }}>{monthYear}</span>
-      </div>
+      {/* ── TOP ROW: avatar+user (left) · brand block (right) ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 }}>
 
-      {/* ── AVATAR + USER INFO ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 26 }}>
-        <div style={{
-          width: 58, height: 58, borderRadius: 14, flexShrink: 0,
-          background: 'linear-gradient(135deg, #60a5fa, #34d399)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, fontWeight: 800, color: '#fff',
-        }}>{initials}</div>
-        <div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: textMain, lineHeight: 1.1 }}>{data?.username ?? '—'}</div>
-          <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>Member since {joinDate}</div>
+        {/* Left: avatar + username + member since */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div style={{
+            width: 58, height: 58, borderRadius: 14, flexShrink: 0,
+            background: 'linear-gradient(135deg, #60a5fa, #34d399)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 22, fontWeight: 800, color: '#fff',
+          }}>{initials}</div>
+          <div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: textMain, lineHeight: 1.1 }}>{data?.username ?? '—'}</div>
+            <div style={{ fontSize: 12, color: textMuted, marginTop: 3 }}>Member since {joinDate}</div>
+          </div>
         </div>
+
+        {/* Right: WordShelf brand block */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <span style={{ fontSize: 22, lineHeight: 1 }}>📚</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: textMain, letterSpacing: '-0.02em', lineHeight: 1.1 }}>WordShelf</span>
+            <span style={{ fontSize: 11, color: textMuted, fontWeight: 500, marginTop: 2 }}>Vocabulary Proficiency Card</span>
+            <span style={{ fontSize: 11, color: textMuted, fontWeight: 500, marginTop: 1 }}>{monthYear}</span>
+          </div>
+        </div>
+
       </div>
 
       {/* ── READING INTELLIGENCE ── */}

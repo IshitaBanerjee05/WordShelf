@@ -48,10 +48,10 @@ export default function ExportModal({ onClose }) {
     }
   };
 
-  // Scale 1200×630 card to fit ~700px preview width
+  // Scale 1200×660 card to fit ~700px preview width
   const PREVIEW_W = 700;
   const SCALE     = PREVIEW_W / 1200;
-  const PREVIEW_H = 630 * SCALE;
+  const PREVIEW_H = 660 * SCALE;
 
   return (
     <AnimatePresence>

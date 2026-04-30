@@ -216,12 +216,12 @@ function BookCard({ book, onDelete, onUpdate }) {
       className="group relative bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl hover:border-primary-200 transition-all duration-300">
 
       {/* Cover */}
-      <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
+      <div className="aspect-[2/3] bg-slate-100 relative overflow-hidden">
         {book.cover
           ? <img src={book.cover} alt={book.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90 group-hover:opacity-100" />
           : <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex flex-col items-center justify-center gap-2">
-              <BookOpen className="w-10 h-10 text-slate-400" />
-              <p className="text-xs text-slate-400 font-medium px-4 text-center line-clamp-2">{book.title}</p>
+              <BookOpen className="w-12 h-12 text-slate-400" />
+              <p className="text-xs text-slate-400 font-medium px-4 text-center line-clamp-3">{book.title}</p>
             </div>}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-60" />
 
